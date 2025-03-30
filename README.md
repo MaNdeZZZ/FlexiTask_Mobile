@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # FlexiTask_Mobile
 
 A new Flutter project.
