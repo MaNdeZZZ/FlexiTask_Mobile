@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "211642642283",
+    "project_id": "flexi-task-4fb2a",
+    "storage_bucket": "flexi-task-4fb2a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:211642642283:android:b814635b3435143b27e62e",
+        "android_client_info": {
+          "package_name": "com.example.flexitask"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDQYZJjjZ9dpcWk8Fnxy-RodqtLGOkQSec"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:211642642283:android:3f4cfb0fe6e44da527e62e",
+        "android_client_info": {
+          "package_name": "com.example.flexitask_mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDQYZJjjZ9dpcWk8Fnxy-RodqtLGOkQSec"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
