@@ -1,7 +1,5 @@
 <<<<<<< HEAD
 # FlexiTask_Mobile
-=======
-# flexitask_mobile
 
 A new Flutter project.
 
