@@ -1,4 +1,4 @@
-import 'package:flexitask_mobile/signin_signup.dart';
+import 'signin_signup.dart';
 import 'package:flutter/material.dart';
 
 class LoadingPage extends StatefulWidget {
@@ -31,7 +31,7 @@ class LoadingPageState extends State<LoadingPage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Image.asset(
-              'assets/logo_tagline.png', // Ensure this image exists in assets
+              'assets/images/logo_tagline.png', // Ensure this image exists in assets
               width: 500,
               height: 500,
             ),

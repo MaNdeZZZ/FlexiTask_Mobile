@@ -9,6 +9,7 @@ class SignInSignUpScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
+        // Change to solid white background
         color: Colors.white,
         child: SafeArea(
           child: Padding(
@@ -16,9 +17,9 @@ class SignInSignUpScreen extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Spacer(),
+                const Spacer(flex: 1),
 
-                // Logo Section
+                // Enhanced logo section with shadow
                 Center(
                   child: Column(
                     children: [
@@ -27,7 +28,7 @@ class SignInSignUpScreen extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: Colors.white,
                           shape: BoxShape.circle,
-                          boxShadow: const [
+                          boxShadow: [
                             BoxShadow(
                               color: Colors.black12,
                               blurRadius: 20,
@@ -37,11 +38,14 @@ class SignInSignUpScreen extends StatelessWidget {
                         ),
                         child: Image.asset(
                           'assets/images/logo.png',
-                          height: 200.0,
-                          width: 200.0,
+                          height: 240.0,
+                          width: 240.0,
                         ),
                       ),
-                      const SizedBox(height: 20.0),
+                      const SizedBox(height: 24.0),
+                      // Removed app name text
+
+                      // App tagline
                       const Text(
                         'Organize your tasks with ease',
                         style: TextStyle(
@@ -49,42 +53,100 @@ class SignInSignUpScreen extends StatelessWidget {
                           fontFamily: 'Lexend',
                           color: Colors.black54,
                         ),
-                        textAlign: TextAlign.center,
                       ),
                     ],
                   ),
                 ),
 
-                const Spacer(),
+                const Spacer(flex: 2),
 
-                // Buttons Section
+                // Enhanced buttons section
                 Column(
                   children: [
-                    _buildButton(
-                      context,
-                      icon: Icons.login,
-                      label: 'Sign In',
-                      onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => LoginScreen()),
+                    // Sign In Button with improved design
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => LoginScreen()),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFD9D9D9),
+                        minimumSize: const Size.fromHeight(55),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15.0),
+                        ),
+                        elevation: 5,
+                        shadowColor: Colors.black45,
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.login, color: Colors.black87),
+                            const SizedBox(width: 12),
+                            const Text(
+                              'Sign In',
+                              style: TextStyle(
+                                fontSize: 18,
+                                color: Colors.black87,
+                                fontFamily: "Lexend",
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                     const SizedBox(height: 16.0),
-                    _buildButton(
-                      context,
-                      icon: Icons.person_add,
-                      label: 'Sign Up',
-                      onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => RegisterScreen()),
+
+                    // Sign Up Button with matching style to Sign In
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => RegisterScreen()),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFD9D9D9),
+                        minimumSize: const Size.fromHeight(55),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15.0),
+                        ),
+                        elevation: 5,
+                        shadowColor: Colors.black45,
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.person_add, color: Colors.black87),
+                            const SizedBox(width: 12),
+                            const Text(
+                              'Sign Up',
+                              style: TextStyle(
+                                fontSize: 18,
+                                color: Colors.black87,
+                                fontFamily: "Lexend",
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],
                 ),
 
-                const Spacer(),
+                const Spacer(flex: 1),
 
-                // Footer Text
+                // Footer text
                 const Padding(
                   padding: EdgeInsets.only(bottom: 16.0),
                   child: Text(
@@ -99,45 +161,6 @@ class SignInSignUpScreen extends StatelessWidget {
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-
-  // Reusable Button Widget
-  Widget _buildButton(BuildContext context, {
-    required IconData icon,
-    required String label,
-    required VoidCallback onPressed,
-  }) {
-    return ElevatedButton(
-      onPressed: onPressed,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFFD9D9D9),
-        minimumSize: const Size.fromHeight(55),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(15.0),
-        ),
-        elevation: 5,
-        shadowColor: Colors.black45,
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: Colors.black87),
-            const SizedBox(width: 12),
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 18,
-                color: Colors.black87,
-                fontFamily: "Lexend",
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
         ),
       ),
     );
