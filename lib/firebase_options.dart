@@ -17,10 +17,7 @@ import 'package:flutter/foundation.dart'
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
-      throw UnsupportedError(
-        'DefaultFirebaseOptions have not been configured for web - '
-        'you can reconfigure this by running the FlutterFire CLI again.',
-      );
+      return web;
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
@@ -54,6 +51,7 @@ class DefaultFirebaseOptions {
     appId: '1:211642642283:android:3f4cfb0fe6e44da527e62e',
     messagingSenderId: '211642642283',
     projectId: 'flexi-task-4fb2a',
+    databaseURL: 'https://flexi-task-4fb2a-default-rtdb.asia-southeast1.firebasedatabase.app',
     storageBucket: 'flexi-task-4fb2a.firebasestorage.app',
   );
 
@@ -62,8 +60,20 @@ class DefaultFirebaseOptions {
     appId: '1:211642642283:ios:a10f88acfa74c8e527e62e',
     messagingSenderId: '211642642283',
     projectId: 'flexi-task-4fb2a',
+    databaseURL: 'https://flexi-task-4fb2a-default-rtdb.asia-southeast1.firebasedatabase.app',
     storageBucket: 'flexi-task-4fb2a.firebasestorage.app',
     iosBundleId: 'com.example.flexitaskMobile',
+  );
+
+  static const FirebaseOptions web = FirebaseOptions(
+    apiKey: 'AIzaSyBQ8Hi478XFOz1SJxoIQW0MiaT3Qx25n6k',
+    appId: '1:211642642283:web:b3e2e26027cc846327e62e',
+    messagingSenderId: '211642642283',
+    projectId: 'flexi-task-4fb2a',
+    authDomain: 'flexi-task-4fb2a.firebaseapp.com',
+    databaseURL: 'https://flexi-task-4fb2a-default-rtdb.asia-southeast1.firebasedatabase.app',
+    storageBucket: 'flexi-task-4fb2a.firebasestorage.app',
+    measurementId: 'G-YNE81STSKB',
   );
 
 }
