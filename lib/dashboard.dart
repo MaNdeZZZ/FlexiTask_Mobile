@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'chatbot.dart';
 import 'profile.dart'; // Add this import
+import 'package:flutter_colorpicker/flutter_colorpicker.dart'; // Add this import for color picker
 
 void main() {
   runApp(const MyApp());
@@ -12,12 +13,16 @@ class Task {
   DateTime date;
   String description;
   bool isCompleted;
+  int priority; // Added priority field
+  Color color; // Added color field
 
   Task({
     required this.title,
     required this.date,
     this.description = '',
     this.isCompleted = false,
+    this.priority = 1, // Default priority is low (1)
+    this.color = Colors.white, // Default color is white
   });
 }
 
@@ -52,10 +57,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
       date: DateTime.now(),
       description: 'Join the Zoom meeting at 2 PM',
     ),
-    Task(
-      title: 'Complete prototype for FlexiTask',
-      date: DateTime.now(),
-    ),
+    Task(title: 'Complete prototype for FlexiTask', date: DateTime.now()),
     Task(
       title: 'Team meeting at 3 PM',
       date: DateTime.now(),
@@ -86,9 +88,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
               // Main content
               Expanded(
                 child: Container(
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                  ),
+                  decoration: const BoxDecoration(color: Colors.white),
                   child: Column(
                     children: [
                       // Logo and profile section
@@ -133,9 +133,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
                                   ),
                                 ),
                                 child: ClipOval(
-                                  child: Container(
-                                    color: Colors.black,
-                                  ),
+                                  child: Container(color: Colors.black),
                                 ),
                               ),
                             ),
@@ -146,9 +144,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
                       // Tagline
                       Container(
                         padding: const EdgeInsets.only(bottom: 16),
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                        ),
+                        decoration: const BoxDecoration(color: Colors.white),
                         child: const Center(
                           child: Text(
                             "Let's turn your ideas into action!",
@@ -163,7 +159,10 @@ class _TodoListScreenState extends State<TodoListScreen> {
 
                       // Divider
                       const Divider(
-                          height: 1, thickness: 1, color: Colors.grey),
+                        height: 1,
+                        thickness: 1,
+                        color: Colors.grey,
+                      ),
 
                       // Todo list items
                       Expanded(
@@ -175,15 +174,17 @@ class _TodoListScreenState extends State<TodoListScreen> {
                               // Today section
                               if (groupedTasks['Today']!.isNotEmpty) ...[
                                 _buildDateHeader('Today', isToday: true),
-                                ...groupedTasks['Today']!
-                                    .map((index) => _buildTaskCard(index)),
+                                ...groupedTasks['Today']!.map(
+                                  (index) => _buildTaskCard(index),
+                                ),
                               ],
 
                               // Tomorrow section
                               if (groupedTasks['Tomorrow']!.isNotEmpty) ...[
                                 _buildDateHeader('Tomorrow'),
-                                ...groupedTasks['Tomorrow']!
-                                    .map((index) => _buildTaskCard(index)),
+                                ...groupedTasks['Tomorrow']!.map(
+                                  (index) => _buildTaskCard(index),
+                                ),
                               ],
 
                               // Upcoming section - Modified to show specific dates
@@ -192,8 +193,9 @@ class _TodoListScreenState extends State<TodoListScreen> {
                                     entry.key != 'Tomorrow' &&
                                     entry.value.isNotEmpty) ...[
                                   _buildDateHeader(entry.key),
-                                  ...entry.value
-                                      .map((index) => _buildTaskCard(index)),
+                                  ...entry.value.map(
+                                    (index) => _buildTaskCard(index),
+                                  ),
                                 ],
                             ],
                           ),
@@ -222,7 +224,8 @@ class _TodoListScreenState extends State<TodoListScreen> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (context) => const ChatbotScreen()),
+                      builder: (context) => const ChatbotScreen(),
+                    ),
                   );
                 },
                 backgroundColor: const Color(0xFFD9D9D9),
@@ -243,12 +246,9 @@ class _TodoListScreenState extends State<TodoListScreen> {
     );
   }
 
-  // Modified to group upcoming tasks by specific dates
+  // Modified to group upcoming tasks by specific dates and sort by priority
   Map<String, List<int>> _groupTasksByDate() {
-    Map<String, List<int>> groupedTasks = {
-      'Today': [],
-      'Tomorrow': [],
-    };
+    Map<String, List<int>> groupedTasks = {'Today': [], 'Tomorrow': []};
 
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -256,7 +256,10 @@ class _TodoListScreenState extends State<TodoListScreen> {
 
     for (int i = 0; i < _tasks.length; i++) {
       final taskDate = DateTime(
-          _tasks[i].date.year, _tasks[i].date.month, _tasks[i].date.day);
+        _tasks[i].date.year,
+        _tasks[i].date.month,
+        _tasks[i].date.day,
+      );
 
       if (taskDate.compareTo(today) == 0) {
         groupedTasks['Today']!.add(i);
@@ -272,6 +275,13 @@ class _TodoListScreenState extends State<TodoListScreen> {
       }
     }
 
+    // Sort each group by priority (highest first)
+    groupedTasks.forEach((key, indexList) {
+      indexList.sort(
+        (a, b) => _tasks[b].priority.compareTo(_tasks[a].priority),
+      );
+    });
+
     return groupedTasks;
   }
 
@@ -285,7 +295,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
       'Thursday',
       'Friday',
       'Saturday',
-      'Sunday'
+      'Sunday',
     ];
     final List<String> months = [
       'January',
@@ -299,7 +309,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
       'September',
       'October',
       'November',
-      'December'
+      'December',
     ];
 
     final weekday = weekdays[date.weekday - 1]; // weekday is 1-7 in Dart
@@ -332,15 +342,14 @@ class _TodoListScreenState extends State<TodoListScreen> {
     );
   }
 
-  // Build task card with tap functionality and status tracking
+  // Build task card with tap functionality, status tracking and custom color
   Widget _buildTaskCard(int index) {
     Task task = _tasks[index];
     return Card(
       elevation: 2,
       margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      color: task.color, // Use the task's color
       // Add InkWell to handle taps
       child: InkWell(
         onTap: () => _showTaskDetailsDialog(index),
@@ -356,15 +365,47 @@ class _TodoListScreenState extends State<TodoListScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        task.title,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontFamily: 'Lexend',
-                          decoration: task.isCompleted
-                              ? TextDecoration.lineThrough
-                              : TextDecoration.none,
-                        ),
+                      Row(
+                        children: [
+                          // Priority indicator
+                          if (task.priority > 1)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              margin: const EdgeInsets.only(right: 8),
+                              decoration: BoxDecoration(
+                                color:
+                                    task.priority == 3
+                                        ? Colors.red
+                                        : Colors.orange,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                "P${task.priority}",
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+
+                          Expanded(
+                            child: Text(
+                              task.title,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontFamily: 'Lexend',
+                                decoration:
+                                    task.isCompleted
+                                        ? TextDecoration.lineThrough
+                                        : TextDecoration.none,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                       if (task.description.isNotEmpty) ...[
                         const SizedBox(height: 4),
@@ -399,9 +440,14 @@ class _TodoListScreenState extends State<TodoListScreen> {
                       border: Border.all(color: Colors.grey),
                       borderRadius: BorderRadius.circular(4),
                     ),
-                    child: task.isCompleted
-                        ? const Icon(Icons.check, size: 16, color: Colors.white)
-                        : null,
+                    child:
+                        task.isCompleted
+                            ? const Icon(
+                              Icons.check,
+                              size: 16,
+                              color: Colors.white,
+                            )
+                            : null,
                   ),
                 ),
               ],
@@ -417,6 +463,9 @@ class _TodoListScreenState extends State<TodoListScreen> {
     final titleController = TextEditingController();
     final descriptionController = TextEditingController();
     DateTime selectedDate = DateTime.now();
+    int selectedPriority = 1;
+    Color pickerColor = Colors.white;
+    Color currentColor = Colors.white;
 
     return showDialog<void>(
       context: context,
@@ -468,6 +517,121 @@ class _TodoListScreenState extends State<TodoListScreen> {
                         }
                       },
                     ),
+
+                    // Priority selector
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Priority Level:',
+                      style: TextStyle(
+                        fontFamily: 'Lexend',
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _buildPriorityButton(
+                          1,
+                          'Low',
+                          Colors.green,
+                          selectedPriority,
+                          (value) {
+                            setStateDialog(() {
+                              selectedPriority = value;
+                            });
+                          },
+                        ),
+                        _buildPriorityButton(
+                          2,
+                          'Medium',
+                          Colors.orange,
+                          selectedPriority,
+                          (value) {
+                            setStateDialog(() {
+                              selectedPriority = value;
+                            });
+                          },
+                        ),
+                        _buildPriorityButton(
+                          3,
+                          'High',
+                          Colors.red,
+                          selectedPriority,
+                          (value) {
+                            setStateDialog(() {
+                              selectedPriority = value;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+
+                    // Color picker
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Task Color:',
+                      style: TextStyle(
+                        fontFamily: 'Lexend',
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        GestureDetector(
+                          onTap: () {
+                            showDialog(
+                              context: context,
+                              builder: (BuildContext context) {
+                                return AlertDialog(
+                                  title: const Text('Pick a color'),
+                                  content: SingleChildScrollView(
+                                    child: ColorPicker(
+                                      pickerColor: pickerColor,
+                                      onColorChanged: (Color color) {
+                                        setStateDialog(() {
+                                          pickerColor = color;
+                                        });
+                                      },
+                                      pickerAreaHeightPercent: 0.8,
+                                      enableAlpha: false,
+                                      displayThumbColor: true,
+                                      paletteType: PaletteType.hsv,
+                                    ),
+                                  ),
+                                  actions: <Widget>[
+                                    TextButton(
+                                      child: const Text('Select'),
+                                      onPressed: () {
+                                        setStateDialog(() {
+                                          currentColor = pickerColor;
+                                        });
+                                        Navigator.of(context).pop();
+                                      },
+                                    ),
+                                  ],
+                                );
+                              },
+                            );
+                          },
+                          child: Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: currentColor,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.grey),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        const Text(
+                          'Tap to select color',
+                          style: TextStyle(fontFamily: 'Lexend'),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -483,11 +647,15 @@ class _TodoListScreenState extends State<TodoListScreen> {
                   onPressed: () {
                     if (titleController.text.isNotEmpty) {
                       setState(() {
-                        _tasks.add(Task(
-                          title: titleController.text,
-                          date: selectedDate,
-                          description: descriptionController.text,
-                        ));
+                        _tasks.add(
+                          Task(
+                            title: titleController.text,
+                            date: selectedDate,
+                            description: descriptionController.text,
+                            priority: selectedPriority,
+                            color: currentColor,
+                          ),
+                        );
                       });
                       Navigator.of(context).pop();
                     }
@@ -501,6 +669,35 @@ class _TodoListScreenState extends State<TodoListScreen> {
     );
   }
 
+  // Helper method to build priority selection buttons
+  Widget _buildPriorityButton(
+    int value,
+    String label,
+    Color color,
+    int selectedValue,
+    Function(int) onSelect,
+  ) {
+    return GestureDetector(
+      onTap: () => onSelect(value),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: selectedValue == value ? color : Colors.transparent,
+          border: Border.all(color: color),
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: selectedValue == value ? Colors.white : color,
+            fontWeight: FontWeight.bold,
+            fontSize: 12,
+          ),
+        ),
+      ),
+    );
+  }
+
   // Dialog to view, edit, or delete a task
   Future<void> _showTaskDetailsDialog(int index) async {
     Task task = _tasks[index];
@@ -508,6 +705,9 @@ class _TodoListScreenState extends State<TodoListScreen> {
     final descriptionController = TextEditingController(text: task.description);
     DateTime selectedDate = task.date;
     bool isEditing = false;
+    int selectedPriority = task.priority;
+    Color pickerColor = task.color;
+    Color currentColor = task.color;
 
     return showDialog<void>(
       context: context,
@@ -515,8 +715,10 @@ class _TodoListScreenState extends State<TodoListScreen> {
         return StatefulBuilder(
           builder: (context, setStateDialog) {
             return AlertDialog(
-              title: Text(isEditing ? 'Edit Task' : 'Task Details',
-                  style: const TextStyle(fontFamily: 'Lexend')),
+              title: Text(
+                isEditing ? 'Edit Task' : 'Task Details',
+                style: const TextStyle(fontFamily: 'Lexend'),
+              ),
               content: SingleChildScrollView(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -561,6 +763,121 @@ class _TodoListScreenState extends State<TodoListScreen> {
                           }
                         },
                       ),
+
+                      // Priority selector for editing
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Priority Level:',
+                        style: TextStyle(
+                          fontFamily: 'Lexend',
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          _buildPriorityButton(
+                            1,
+                            'Low',
+                            Colors.green,
+                            selectedPriority,
+                            (value) {
+                              setStateDialog(() {
+                                selectedPriority = value;
+                              });
+                            },
+                          ),
+                          _buildPriorityButton(
+                            2,
+                            'Medium',
+                            Colors.orange,
+                            selectedPriority,
+                            (value) {
+                              setStateDialog(() {
+                                selectedPriority = value;
+                              });
+                            },
+                          ),
+                          _buildPriorityButton(
+                            3,
+                            'High',
+                            Colors.red,
+                            selectedPriority,
+                            (value) {
+                              setStateDialog(() {
+                                selectedPriority = value;
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+
+                      // Color picker for editing
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Task Color:',
+                        style: TextStyle(
+                          fontFamily: 'Lexend',
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          GestureDetector(
+                            onTap: () {
+                              showDialog(
+                                context: context,
+                                builder: (BuildContext context) {
+                                  return AlertDialog(
+                                    title: const Text('Pick a color'),
+                                    content: SingleChildScrollView(
+                                      child: ColorPicker(
+                                        pickerColor: pickerColor,
+                                        onColorChanged: (Color color) {
+                                          setStateDialog(() {
+                                            pickerColor = color;
+                                          });
+                                        },
+                                        pickerAreaHeightPercent: 0.8,
+                                        enableAlpha: false,
+                                        displayThumbColor: true,
+                                        paletteType: PaletteType.hsv,
+                                      ),
+                                    ),
+                                    actions: <Widget>[
+                                      TextButton(
+                                        child: const Text('Select'),
+                                        onPressed: () {
+                                          setStateDialog(() {
+                                            currentColor = pickerColor;
+                                          });
+                                          Navigator.of(context).pop();
+                                        },
+                                      ),
+                                    ],
+                                  );
+                                },
+                              );
+                            },
+                            child: Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: currentColor,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.grey),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          const Text(
+                            'Tap to select color',
+                            style: TextStyle(fontFamily: 'Lexend'),
+                          ),
+                        ],
+                      ),
                     ] else ...[
                       // Viewing mode UI
                       Text(
@@ -575,6 +892,33 @@ class _TodoListScreenState extends State<TodoListScreen> {
                       Text(
                         'Date: ${task.date.toLocal().toString().split(' ')[0]}',
                         style: const TextStyle(fontFamily: 'Lexend'),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Priority: ${task.priority == 1
+                            ? 'Low'
+                            : task.priority == 2
+                            ? 'Medium'
+                            : 'High'}',
+                        style: const TextStyle(fontFamily: 'Lexend'),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          const Text(
+                            'Color: ',
+                            style: TextStyle(fontFamily: 'Lexend'),
+                          ),
+                          Container(
+                            width: 20,
+                            height: 20,
+                            decoration: BoxDecoration(
+                              color: task.color,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.grey),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 8),
                       Text(
@@ -631,6 +975,8 @@ class _TodoListScreenState extends State<TodoListScreen> {
                             date: selectedDate,
                             description: descriptionController.text,
                             isCompleted: task.isCompleted,
+                            priority: selectedPriority,
+                            color: currentColor,
                           );
                         });
                         Navigator.of(context).pop();
