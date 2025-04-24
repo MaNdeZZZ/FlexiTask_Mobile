@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'chatbot.dart';
-import 'profile.dart'; // Add this import
-import 'package:flutter_colorpicker/flutter_colorpicker.dart'; // Add this import for color picker
+import 'profile.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // Add this import
 
 void main() {
   runApp(const MyApp());
@@ -15,6 +15,8 @@ class Task {
   bool isCompleted;
   int priority; // Added priority field
   Color color; // Added color field
+  bool hasNotification; // Added notification field
+  int notificationMinutesBefore; // Minutes before deadline to notify
 
   Task({
     required this.title,
@@ -23,7 +25,69 @@ class Task {
     this.isCompleted = false,
     this.priority = 1, // Default priority is low (1)
     this.color = Colors.white, // Default color is white
+    this.hasNotification = false, // Default is no notification
+    this.notificationMinutesBefore = 24 * 60, // Default 1 day before
   });
+}
+
+// The mock NotificationService is already implemented in this file and doesn't
+// require the flutter_local_notifications package, so we keep it as is.
+class NotificationService {
+  // List to track scheduled notifications
+  static final List<Map<String, dynamic>> _scheduledNotifications = [];
+
+  static Future<void> initialize() async {
+    // Mock initialization
+    debugPrint('Mock notification service initialized');
+  }
+
+  // Schedule a notification for a task
+  static Future<void> scheduleNotification(Task task) async {
+    if (!task.hasNotification) {
+      return; // Skip if notifications are disabled for this task
+    }
+
+    // Calculate notification time (task time minus notificationMinutesBefore)
+    final scheduledTime = task.date.subtract(
+      Duration(minutes: task.notificationMinutesBefore),
+    );
+
+    // Check if the notification time is in the future
+    if (scheduledTime.isBefore(DateTime.now())) {
+      return; // Skip if notification time has already passed
+    }
+
+    // Store notification info
+    _scheduledNotifications.add({
+      'id': task.hashCode,
+      'title': 'Upcoming Task: ${task.title}',
+      'body':
+          task.description.isEmpty
+              ? 'This task is due soon!'
+              : task.description,
+      'scheduledTime': scheduledTime,
+    });
+
+    debugPrint('Mock notification scheduled for: ${scheduledTime.toString()}');
+    debugPrint('Active notifications: ${_scheduledNotifications.length}');
+  }
+
+  // Cancel notification for a task
+  static Future<void> cancelNotification(Task task) async {
+    _scheduledNotifications.removeWhere(
+      (notification) => notification['id'] == task.hashCode,
+    );
+    debugPrint('Mock notification canceled for task: ${task.title}');
+    debugPrint('Remaining notifications: ${_scheduledNotifications.length}');
+  }
+
+  // Update notification for a task (cancel and reschedule)
+  static Future<void> updateNotification(Task task) async {
+    await cancelNotification(task);
+    if (task.hasNotification) {
+      await scheduleNotification(task);
+    }
+  }
 }
 
 class MyApp extends StatelessWidget {
@@ -31,25 +95,30 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Initialize notifications when app starts
+    NotificationService.initialize();
+
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primarySwatch: Colors.green,
         scaffoldBackgroundColor: Colors.black,
       ),
-      home: const TodoListScreen(),
+      home: const DashboardScreen(), // Updated class name here
     );
   }
 }
 
-class TodoListScreen extends StatefulWidget {
-  const TodoListScreen({Key? key}) : super(key: key);
+class DashboardScreen extends StatefulWidget {
+  // Renamed from TodoListScreen
+  const DashboardScreen({Key? key}) : super(key: key);
 
   @override
-  State<TodoListScreen> createState() => _TodoListScreenState();
+  State<DashboardScreen> createState() => _DashboardScreenState(); // Updated state class name
 }
 
-class _TodoListScreenState extends State<TodoListScreen> {
+class _DashboardScreenState extends State<DashboardScreen> {
+  // Renamed from _TodoListScreenState
   // Task list to store all tasks
   final List<Task> _tasks = [
     Task(
@@ -73,6 +142,35 @@ class _TodoListScreenState extends State<TodoListScreen> {
       date: DateTime.now().add(const Duration(days: 1)),
     ),
   ];
+
+  // Add a variable to store the profile image path
+  String? _profileImagePath;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Schedule notifications for existing tasks
+    for (var task in _tasks) {
+      if (task.hasNotification) {
+        NotificationService.scheduleNotification(task);
+      }
+    }
+
+    // Load profile image if available
+    _loadProfileImage();
+  }
+
+  // Load profile image from SharedPreferences
+  Future<void> _loadProfileImage() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedPath = prefs.getString('profileImagePath');
+    if (savedPath != null && savedPath.isNotEmpty) {
+      setState(() {
+        _profileImagePath = savedPath;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -120,7 +218,9 @@ class _TodoListScreenState extends State<TodoListScreen> {
                                   MaterialPageRoute(
                                     builder: (context) => const ProfileScreen(),
                                   ),
-                                );
+                                ).then(
+                                  (_) => _loadProfileImage(),
+                                ); // Reload when returning from profile
                               },
                               child: Container(
                                 width: 40,
@@ -133,7 +233,13 @@ class _TodoListScreenState extends State<TodoListScreen> {
                                   ),
                                 ),
                                 child: ClipOval(
-                                  child: Container(color: Colors.black),
+                                  child:
+                                      _profileImagePath != null
+                                          ? Image.asset(
+                                            _profileImagePath!,
+                                            fit: BoxFit.cover,
+                                          )
+                                          : Container(color: Colors.black),
                                 ),
                               ),
                             ),
@@ -210,33 +316,30 @@ class _TodoListScreenState extends State<TodoListScreen> {
         ),
       ),
 
-      // Floating action buttons
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 12, right: 12),
+      // Floating action buttons - improved positioning
+      floatingActionButton: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            // AI button (left) - Updated to navigate to ChatbotScreen
-            Padding(
-              padding: const EdgeInsets.only(left: 30),
-              child: FloatingActionButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const ChatbotScreen(),
-                    ),
-                  );
-                },
-                backgroundColor: const Color(0xFFD9D9D9),
-                child: const Icon(Icons.psychology, color: Colors.black),
-              ),
+            // AI button (left)
+            FloatingActionButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ChatbotScreen(),
+                  ),
+                );
+              },
+              backgroundColor: Colors.white, // Changed to white
+              child: const Icon(Icons.psychology, color: Colors.black),
             ),
 
-            // Add task button (right) - now connected to the add task dialog
+            // Add task button (right)
             FloatingActionButton(
               onPressed: _showAddTaskDialog,
-              backgroundColor: const Color(0xFFD9D9D9),
+              backgroundColor: Colors.white, // Changed to white
               child: const Icon(Icons.add, color: Colors.black),
             ),
           ],
@@ -323,26 +426,29 @@ class _TodoListScreenState extends State<TodoListScreen> {
   Widget _buildDateHeader(String text, {bool isToday = false}) {
     return Padding(
       padding: const EdgeInsets.only(left: 8, bottom: 8, top: 16),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-        decoration: BoxDecoration(
-          color: isToday ? const Color(0xFF34A853) : Colors.transparent,
-          borderRadius: const BorderRadius.all(Radius.circular(12)),
-        ),
-        child: Text(
-          text,
-          style: TextStyle(
-            color: isToday ? Colors.white : Colors.grey,
-            fontWeight: FontWeight.bold,
-            fontFamily: 'Lexend',
-            fontSize: 14,
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          decoration: BoxDecoration(
+            color: isToday ? const Color(0xFF34A853) : Colors.transparent,
+            borderRadius: const BorderRadius.all(Radius.circular(12)),
+          ),
+          child: Text(
+            text,
+            style: TextStyle(
+              color: isToday ? Colors.white : Colors.grey,
+              fontWeight: FontWeight.bold,
+              fontFamily: 'Lexend',
+              fontSize: 14,
+            ),
           ),
         ),
       ),
     );
   }
 
-  // Build task card with tap functionality, status tracking and custom color
+  // Build task card with tap functionality, status tracking, custom color and notification indicator
   Widget _buildTaskCard(int index) {
     Task task = _tasks[index];
     return Card(
@@ -389,6 +495,25 @@ class _TodoListScreenState extends State<TodoListScreen> {
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
                                 ),
+                              ),
+                            ),
+
+                          // Notification indicator
+                          if (task.hasNotification)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              margin: const EdgeInsets.only(right: 8),
+                              decoration: BoxDecoration(
+                                color: Colors.blue,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: const Icon(
+                                Icons.notifications_active,
+                                color: Colors.white,
+                                size: 10,
                               ),
                             ),
 
@@ -464,8 +589,9 @@ class _TodoListScreenState extends State<TodoListScreen> {
     final descriptionController = TextEditingController();
     DateTime selectedDate = DateTime.now();
     int selectedPriority = 1;
-    Color pickerColor = Colors.white;
-    Color currentColor = Colors.white;
+    bool hasNotification = false;
+    int selectedNotificationTime =
+        24 * 60; // Default: 1 day before (in minutes)
 
     return showDialog<void>(
       context: context,
@@ -473,7 +599,14 @@ class _TodoListScreenState extends State<TodoListScreen> {
         return StatefulBuilder(
           builder: (context, setStateDialog) {
             return AlertDialog(
-              title: const Text('Add New Task'),
+              backgroundColor: Colors.white, // Changed from Color(0xFFD9D9D9)
+              title: const Text(
+                'Add New Task',
+                style: TextStyle(
+                  fontFamily: 'Lexend',
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               content: SingleChildScrollView(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -493,22 +626,50 @@ class _TodoListScreenState extends State<TodoListScreen> {
                         labelText: 'Description/Note',
                         labelStyle: TextStyle(fontFamily: 'Lexend'),
                       ),
-                      maxLines: 3,
+                      maxLines: 3, // Limit maximum lines for description
+                      minLines: 1, // Set minimum lines
                     ),
                     const SizedBox(height: 16),
                     // Date picker
                     ListTile(
                       title: Text(
                         'Date: ${selectedDate.toLocal().toString().split(' ')[0]}',
-                        style: const TextStyle(fontFamily: 'Lexend'),
+                        style: const TextStyle(
+                          fontFamily: 'Lexend',
+                          color:
+                              Colors
+                                  .black87, // Changed from white to black for visibility
+                        ),
                       ),
-                      trailing: const Icon(Icons.calendar_today),
+                      trailing: const Icon(
+                        Icons.calendar_today,
+                        color:
+                            Colors
+                                .black87, // Changed from white to black for visibility
+                      ),
                       onTap: () async {
                         final DateTime? picked = await showDatePicker(
                           context: context,
                           initialDate: selectedDate,
                           firstDate: DateTime.now(),
                           lastDate: DateTime(2101),
+                          builder: (context, child) {
+                            return Theme(
+                              data: Theme.of(context).copyWith(
+                                colorScheme: const ColorScheme.light(
+                                  primary: Color(
+                                    0xFF34A853,
+                                  ), // Green color for selected date
+                                  onPrimary:
+                                      Colors
+                                          .white, // White text for selected date
+                                  onSurface:
+                                      Colors.black, // Black text for calendar
+                                ),
+                              ),
+                              child: child!,
+                            );
+                          },
                         );
                         if (picked != null && picked != selectedDate) {
                           setStateDialog(() {
@@ -567,96 +728,146 @@ class _TodoListScreenState extends State<TodoListScreen> {
                       ],
                     ),
 
-                    // Color picker
+                    // Notification settings
                     const SizedBox(height: 16),
-                    const Text(
-                      'Task Color:',
-                      style: TextStyle(
-                        fontFamily: 'Lexend',
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        GestureDetector(
-                          onTap: () {
-                            showDialog(
-                              context: context,
-                              builder: (BuildContext context) {
-                                return AlertDialog(
-                                  title: const Text('Pick a color'),
-                                  content: SingleChildScrollView(
-                                    child: ColorPicker(
-                                      pickerColor: pickerColor,
-                                      onColorChanged: (Color color) {
-                                        setStateDialog(() {
-                                          pickerColor = color;
-                                        });
-                                      },
-                                      pickerAreaHeightPercent: 0.8,
-                                      enableAlpha: false,
-                                      displayThumbColor: true,
-                                      paletteType: PaletteType.hsv,
-                                    ),
-                                  ),
-                                  actions: <Widget>[
-                                    TextButton(
-                                      child: const Text('Select'),
-                                      onPressed: () {
-                                        setStateDialog(() {
-                                          currentColor = pickerColor;
-                                        });
-                                        Navigator.of(context).pop();
-                                      },
-                                    ),
-                                  ],
-                                );
-                              },
-                            );
-                          },
-                          child: Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: currentColor,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Colors.grey),
-                            ),
+                        const Text(
+                          'Enable Notification:',
+                          style: TextStyle(
+                            fontFamily: 'Lexend',
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                        const SizedBox(width: 10),
-                        const Text(
-                          'Tap to select color',
-                          style: TextStyle(fontFamily: 'Lexend'),
+                        Switch(
+                          value: hasNotification,
+                          onChanged: (value) {
+                            setStateDialog(() {
+                              hasNotification = value;
+                            });
+                          },
+                          activeColor: Colors.green,
                         ),
                       ],
                     ),
+
+                    // Notification time selector (only shown when notifications are enabled)
+                    if (hasNotification) ...[
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Notify me:',
+                        style: TextStyle(fontFamily: 'Lexend'),
+                      ),
+                      const SizedBox(height: 8),
+                      DropdownButtonFormField<int>(
+                        decoration: const InputDecoration(
+                          border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.symmetric(horizontal: 10),
+                        ),
+                        value: selectedNotificationTime,
+                        items: [
+                          DropdownMenuItem(
+                            value: 15,
+                            child: Text(
+                              '15 minutes before',
+                              style: TextStyle(fontFamily: 'Lexend'),
+                            ),
+                          ),
+                          DropdownMenuItem(
+                            value: 30,
+                            child: Text(
+                              '30 minutes before',
+                              style: TextStyle(fontFamily: 'Lexend'),
+                            ),
+                          ),
+                          DropdownMenuItem(
+                            value: 60,
+                            child: Text(
+                              '1 hour before',
+                              style: TextStyle(fontFamily: 'Lexend'),
+                            ),
+                          ),
+                          DropdownMenuItem(
+                            value: 60 * 3,
+                            child: Text(
+                              '3 hours before',
+                              style: TextStyle(fontFamily: 'Lexend'),
+                            ),
+                          ),
+                          DropdownMenuItem(
+                            value: 60 * 24,
+                            child: Text(
+                              '1 day before',
+                              style: TextStyle(fontFamily: 'Lexend'),
+                            ),
+                          ),
+                          DropdownMenuItem(
+                            value: 60 * 24 * 2,
+                            child: Text(
+                              '2 days before',
+                              style: TextStyle(fontFamily: 'Lexend'),
+                            ),
+                          ),
+                          DropdownMenuItem(
+                            value: 60 * 24 * 7,
+                            child: Text(
+                              '1 week before',
+                              style: TextStyle(fontFamily: 'Lexend'),
+                            ),
+                          ),
+                        ],
+                        onChanged: (value) {
+                          if (value != null) {
+                            setStateDialog(() {
+                              selectedNotificationTime = value;
+                            });
+                          }
+                        },
+                      ),
+                    ],
                   ],
                 ),
               ),
               actions: [
                 TextButton(
-                  child: const Text('Cancel'),
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(color: Colors.black87),
+                  ),
                   onPressed: () {
                     Navigator.of(context).pop();
                   },
                 ),
                 TextButton(
-                  child: const Text('Add'),
+                  child: const Text(
+                    'Add',
+                    style: TextStyle(
+                      color: Color(0xFF34A853),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                   onPressed: () {
                     if (titleController.text.isNotEmpty) {
+                      final newTask = Task(
+                        title: titleController.text,
+                        date: selectedDate,
+                        description: descriptionController.text,
+                        priority: selectedPriority,
+                        color: Colors.white, // Set default color
+                        hasNotification: hasNotification,
+                        notificationMinutesBefore: selectedNotificationTime,
+                      );
+
                       setState(() {
-                        _tasks.add(
-                          Task(
-                            title: titleController.text,
-                            date: selectedDate,
-                            description: descriptionController.text,
-                            priority: selectedPriority,
-                            color: currentColor,
-                          ),
-                        );
+                        _tasks.add(newTask);
                       });
+
+                      // Schedule notification if enabled
+                      if (hasNotification) {
+                        NotificationService.scheduleNotification(newTask);
+                      }
+
                       Navigator.of(context).pop();
                     }
                   },
@@ -706,8 +917,8 @@ class _TodoListScreenState extends State<TodoListScreen> {
     DateTime selectedDate = task.date;
     bool isEditing = false;
     int selectedPriority = task.priority;
-    Color pickerColor = task.color;
-    Color currentColor = task.color;
+    bool hasNotification = task.hasNotification;
+    int selectedNotificationTime = task.notificationMinutesBefore;
 
     return showDialog<void>(
       context: context,
@@ -715,9 +926,13 @@ class _TodoListScreenState extends State<TodoListScreen> {
         return StatefulBuilder(
           builder: (context, setStateDialog) {
             return AlertDialog(
+              backgroundColor: Colors.white, // Changed from Color(0xFFD9D9D9)
               title: Text(
                 isEditing ? 'Edit Task' : 'Task Details',
-                style: const TextStyle(fontFamily: 'Lexend'),
+                style: const TextStyle(
+                  fontFamily: 'Lexend',
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               content: SingleChildScrollView(
                 child: Column(
@@ -740,21 +955,49 @@ class _TodoListScreenState extends State<TodoListScreen> {
                           labelText: 'Description/Note',
                           labelStyle: TextStyle(fontFamily: 'Lexend'),
                         ),
-                        maxLines: 3,
+                        maxLines: 2, // Limit maximum lines for description
+                        minLines: 1, // Set minimum lines
                       ),
                       const SizedBox(height: 16),
                       ListTile(
                         title: Text(
                           'Date: ${selectedDate.toLocal().toString().split(' ')[0]}',
-                          style: const TextStyle(fontFamily: 'Lexend'),
+                          style: const TextStyle(
+                            fontFamily: 'Lexend',
+                            color:
+                                Colors
+                                    .black87, // Changed from white to black for visibility
+                          ),
                         ),
-                        trailing: const Icon(Icons.calendar_today),
+                        trailing: const Icon(
+                          Icons.calendar_today,
+                          color:
+                              Colors
+                                  .black87, // Changed from white to black for visibility
+                        ),
                         onTap: () async {
                           final DateTime? picked = await showDatePicker(
                             context: context,
                             initialDate: selectedDate,
                             firstDate: DateTime.now(),
                             lastDate: DateTime(2101),
+                            builder: (context, child) {
+                              return Theme(
+                                data: Theme.of(context).copyWith(
+                                  colorScheme: const ColorScheme.light(
+                                    primary: Color(
+                                      0xFF34A853,
+                                    ), // Green color for selected date
+                                    onPrimary:
+                                        Colors
+                                            .white, // White text for selected date
+                                    onSurface:
+                                        Colors.black, // Black text for calendar
+                                  ),
+                                ),
+                                child: child!,
+                              );
+                            },
                           );
                           if (picked != null && picked != selectedDate) {
                             setStateDialog(() {
@@ -813,71 +1056,106 @@ class _TodoListScreenState extends State<TodoListScreen> {
                         ],
                       ),
 
-                      // Color picker for editing
+                      // Notification settings for editing
                       const SizedBox(height: 16),
-                      const Text(
-                        'Task Color:',
-                        style: TextStyle(
-                          fontFamily: 'Lexend',
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
                       Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          GestureDetector(
-                            onTap: () {
-                              showDialog(
-                                context: context,
-                                builder: (BuildContext context) {
-                                  return AlertDialog(
-                                    title: const Text('Pick a color'),
-                                    content: SingleChildScrollView(
-                                      child: ColorPicker(
-                                        pickerColor: pickerColor,
-                                        onColorChanged: (Color color) {
-                                          setStateDialog(() {
-                                            pickerColor = color;
-                                          });
-                                        },
-                                        pickerAreaHeightPercent: 0.8,
-                                        enableAlpha: false,
-                                        displayThumbColor: true,
-                                        paletteType: PaletteType.hsv,
-                                      ),
-                                    ),
-                                    actions: <Widget>[
-                                      TextButton(
-                                        child: const Text('Select'),
-                                        onPressed: () {
-                                          setStateDialog(() {
-                                            currentColor = pickerColor;
-                                          });
-                                          Navigator.of(context).pop();
-                                        },
-                                      ),
-                                    ],
-                                  );
-                                },
-                              );
-                            },
-                            child: Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                color: currentColor,
-                                shape: BoxShape.circle,
-                                border: Border.all(color: Colors.grey),
-                              ),
+                          const Text(
+                            'Enable Notification:',
+                            style: TextStyle(
+                              fontFamily: 'Lexend',
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
-                          const SizedBox(width: 10),
-                          const Text(
-                            'Tap to select color',
-                            style: TextStyle(fontFamily: 'Lexend'),
+                          Switch(
+                            value: hasNotification,
+                            onChanged: (value) {
+                              setStateDialog(() {
+                                hasNotification = value;
+                              });
+                            },
+                            activeColor: Colors.green,
                           ),
                         ],
                       ),
+
+                      // Notification time selector (only shown when notifications are enabled)
+                      if (hasNotification) ...[
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Notify me:',
+                          style: TextStyle(fontFamily: 'Lexend'),
+                        ),
+                        const SizedBox(height: 8),
+                        DropdownButtonFormField<int>(
+                          decoration: const InputDecoration(
+                            border: OutlineInputBorder(),
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 10,
+                            ),
+                          ),
+                          value: selectedNotificationTime,
+                          items: [
+                            DropdownMenuItem(
+                              value: 15,
+                              child: Text(
+                                '15 minutes before',
+                                style: TextStyle(fontFamily: 'Lexend'),
+                              ),
+                            ),
+                            DropdownMenuItem(
+                              value: 30,
+                              child: Text(
+                                '30 minutes before',
+                                style: TextStyle(fontFamily: 'Lexend'),
+                              ),
+                            ),
+                            DropdownMenuItem(
+                              value: 60,
+                              child: Text(
+                                '1 hour before',
+                                style: TextStyle(fontFamily: 'Lexend'),
+                              ),
+                            ),
+                            DropdownMenuItem(
+                              value: 60 * 3,
+                              child: Text(
+                                '3 hours before',
+                                style: TextStyle(fontFamily: 'Lexend'),
+                              ),
+                            ),
+                            DropdownMenuItem(
+                              value: 60 * 24,
+                              child: Text(
+                                '1 day before',
+                                style: TextStyle(fontFamily: 'Lexend'),
+                              ),
+                            ),
+                            DropdownMenuItem(
+                              value: 60 * 24 * 2,
+                              child: Text(
+                                '2 days before',
+                                style: TextStyle(fontFamily: 'Lexend'),
+                              ),
+                            ),
+                            DropdownMenuItem(
+                              value: 60 * 24 * 7,
+                              child: Text(
+                                '1 week before',
+                                style: TextStyle(fontFamily: 'Lexend'),
+                              ),
+                            ),
+                          ],
+                          onChanged: (value) {
+                            if (value != null) {
+                              setStateDialog(() {
+                                selectedNotificationTime = value;
+                              });
+                            }
+                          },
+                        ),
+                      ],
                     ] else ...[
                       // Viewing mode UI
                       Text(
@@ -903,22 +1181,9 @@ class _TodoListScreenState extends State<TodoListScreen> {
                         style: const TextStyle(fontFamily: 'Lexend'),
                       ),
                       const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          const Text(
-                            'Color: ',
-                            style: TextStyle(fontFamily: 'Lexend'),
-                          ),
-                          Container(
-                            width: 20,
-                            height: 20,
-                            decoration: BoxDecoration(
-                              color: task.color,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Colors.grey),
-                            ),
-                          ),
-                        ],
+                      Text(
+                        'Notification: ${task.hasNotification ? _formatNotificationTime(task.notificationMinutesBefore) : 'Off'}',
+                        style: const TextStyle(fontFamily: 'Lexend'),
                       ),
                       const SizedBox(height: 8),
                       Text(
@@ -933,32 +1198,44 @@ class _TodoListScreenState extends State<TodoListScreen> {
                 if (!isEditing) ...[
                   // Viewing mode actions
                   TextButton(
-                    child: const Text('Delete'),
+                    child: const Text(
+                      'Delete',
+                      style: TextStyle(color: Colors.red),
+                    ),
                     onPressed: () {
-                      setState(() {
-                        _tasks.removeAt(index);
-                      });
-                      Navigator.of(context).pop();
+                      // Show confirmation before deleting
+                      _showDeleteConfirmationDialog(context, index);
                     },
                   ),
                   TextButton(
-                    child: const Text('Edit'),
+                    child: const Text(
+                      'Edit',
+                      style: TextStyle(color: Colors.blue),
+                    ),
                     onPressed: () {
-                      setStateDialog(() {
-                        isEditing = true;
+                      // Show confirmation before editing
+                      _showEditConfirmationDialog(context, () {
+                        setStateDialog(() {
+                          isEditing = true;
+                        });
                       });
                     },
                   ),
                   TextButton(
-                    child: const Text('Close'),
+                    child: const Text(
+                      'Close',
+                      style: TextStyle(color: Colors.black87),
+                    ),
                     onPressed: () {
                       Navigator.of(context).pop();
                     },
                   ),
                 ] else ...[
-                  // Editing mode actions
                   TextButton(
-                    child: const Text('Cancel'),
+                    child: const Text(
+                      'Cancel',
+                      style: TextStyle(color: Colors.black87),
+                    ),
                     onPressed: () {
                       setStateDialog(() {
                         isEditing = false;
@@ -966,9 +1243,18 @@ class _TodoListScreenState extends State<TodoListScreen> {
                     },
                   ),
                   TextButton(
-                    child: const Text('Save'),
+                    child: const Text(
+                      'Save',
+                      style: TextStyle(
+                        color: Color(0xFF34A853),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     onPressed: () {
                       if (titleController.text.isNotEmpty) {
+                        // Cancel existing notification first
+                        NotificationService.cancelNotification(_tasks[index]);
+
                         setState(() {
                           _tasks[index] = Task(
                             title: titleController.text,
@@ -976,9 +1262,19 @@ class _TodoListScreenState extends State<TodoListScreen> {
                             description: descriptionController.text,
                             isCompleted: task.isCompleted,
                             priority: selectedPriority,
-                            color: currentColor,
+                            color: task.color, // Keep the existing color
+                            hasNotification: hasNotification,
+                            notificationMinutesBefore: selectedNotificationTime,
                           );
                         });
+
+                        // Schedule new notification if enabled
+                        if (hasNotification) {
+                          NotificationService.scheduleNotification(
+                            _tasks[index],
+                          );
+                        }
+
                         Navigator.of(context).pop();
                       }
                     },
@@ -987,6 +1283,106 @@ class _TodoListScreenState extends State<TodoListScreen> {
               ],
             );
           },
+        );
+      },
+    );
+  }
+
+  // Helper method to format notification time for display
+  String _formatNotificationTime(int minutes) {
+    if (minutes < 60) {
+      return '$minutes minutes before';
+    } else if (minutes < 60 * 24) {
+      return '${minutes ~/ 60} hour${minutes ~/ 60 > 1 ? "s" : ""} before';
+    } else if (minutes < 60 * 24 * 7) {
+      return '${minutes ~/ (60 * 24)} day${minutes ~/ (60 * 24) > 1 ? "s" : ""} before';
+    } else {
+      return '${minutes ~/ (60 * 24 * 7)} week${minutes ~/ (60 * 24 * 7) > 1 ? "s" : ""} before';
+    }
+  }
+
+  // New method: Confirmation dialog for deleting tasks
+  Future<void> _showDeleteConfirmationDialog(
+    BuildContext context,
+    int index,
+  ) async {
+    return showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          backgroundColor: Colors.white, // Changed from Color(0xFFD9D9D9)
+          title: const Text(
+            'Confirm Deletion',
+            style: TextStyle(fontFamily: 'Lexend', fontWeight: FontWeight.bold),
+          ),
+          content: const Text(
+            'Are you sure you want to delete this task?',
+            style: TextStyle(fontFamily: 'Lexend'),
+          ),
+          actions: [
+            TextButton(
+              child: const Text('Cancel'),
+              onPressed: () {
+                Navigator.of(
+                  dialogContext,
+                ).pop(); // Close the confirmation dialog
+              },
+            ),
+            TextButton(
+              child: const Text('Delete', style: TextStyle(color: Colors.red)),
+              onPressed: () {
+                setState(() {
+                  _tasks.removeAt(index);
+                });
+                Navigator.of(
+                  dialogContext,
+                ).pop(); // Close the confirmation dialog
+                Navigator.of(context).pop(); // Close the task details dialog
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // New method: Confirmation dialog for editing tasks
+  Future<void> _showEditConfirmationDialog(
+    BuildContext context,
+    Function onConfirm,
+  ) async {
+    return showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          backgroundColor: Colors.white, // Changed from Color(0xFFD9D9D9)
+          title: const Text(
+            'Confirm Edit',
+            style: TextStyle(fontFamily: 'Lexend', fontWeight: FontWeight.bold),
+          ),
+          content: const Text(
+            'Do you want to edit this task?',
+            style: TextStyle(fontFamily: 'Lexend'),
+          ),
+          actions: [
+            TextButton(
+              child: const Text('Cancel'),
+              onPressed: () {
+                Navigator.of(
+                  dialogContext,
+                ).pop(); // Close the confirmation dialog
+              },
+            ),
+            TextButton(
+              child: const Text('Edit'),
+              onPressed: () {
+                Navigator.of(
+                  dialogContext,
+                ).pop(); // Close the confirmation dialog
+                onConfirm(); // Proceed with edit mode
+              },
+            ),
+          ],
         );
       },
     );

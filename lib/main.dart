@@ -1,12 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
-import 'package:flexitask_mobile/loading_page.dart';
 import 'package:flutter/material.dart';
-
-// void main() async {
-//   WidgetsFlutterBinding.ensureInitialized(); // Pastikan binding diinisialisasi sebelum Firebase
-//   await Firebase.initializeApp(); // Inisialisasi Firebase
-//   runApp(MyApp());
-// }
+import 'splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,7 +10,7 @@ void main() async {
   } catch (e) {
     print("❌ Firebase gagal diinisialisasi: $e");
   }
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -24,9 +18,11 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
+      title: 'FlexiTask',
+      theme: ThemeData(primarySwatch: Colors.blue, fontFamily: 'Lexend'),
+      home: const LoadingPage(),
       debugShowCheckedModeBanner: false,
-      home: LoadingPage(),
     );
   }
 }

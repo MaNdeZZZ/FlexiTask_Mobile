@@ -69,7 +69,8 @@ class SignInSignUpScreen extends StatelessWidget {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (context) => LoginScreen()),
+                            builder: (context) => LoginScreen(),
+                          ),
                         );
                       },
                       style: ElevatedButton.styleFrom(
@@ -109,7 +110,8 @@ class SignInSignUpScreen extends StatelessWidget {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (context) => RegisterScreen()),
+                            builder: (context) => RegisterScreen(),
+                          ),
                         );
                       },
                       style: ElevatedButton.styleFrom(

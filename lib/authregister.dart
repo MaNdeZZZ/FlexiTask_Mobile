@@ -1,106 +1,133 @@
 import 'package:flutter/material.dart';
-import 'signin_signup.dart'; // Import the SignInSignUpScreen
+import 'signin_signup.dart';
 
-class RegistrationConfirmationScreen extends StatelessWidget {
+class AuthRegisterUtils {
+  static Widget buildEmailSentStep(BuildContext context, String email) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const Icon(Icons.mark_email_read, size: 80, color: Colors.green),
+        const SizedBox(height: 24),
+        const Text(
+          'Verify Your Email!',
+          style: TextStyle(
+            fontSize: 24,
+            fontFamily: 'Lexend',
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          'We\'ve sent a verification link to $email. Please check your inbox and follow the link to verify your account.',
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            fontSize: 16,
+            fontFamily: 'Lexend',
+            color: Colors.black54,
+          ),
+        ),
+        const SizedBox(height: 32),
+        const Spacer(),
+        ElevatedButton(
+          onPressed: () {
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const SignInSignUpScreen(),
+              ),
+              (route) => false,
+            );
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(
+              0xFFD9D9D9,
+            ), // Changed to match signin_signup.dart
+            minimumSize: const Size.fromHeight(50),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12.0),
+            ),
+            elevation: 5,
+            shadowColor: Colors.black45,
+          ),
+          child: const Text(
+            'Back to Sign In',
+            style: TextStyle(
+              fontSize: 18,
+              color: Colors.black,
+              fontFamily: "Lexend",
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class RegistrationConfirmationScreen extends StatefulWidget {
   final String email;
 
   const RegistrationConfirmationScreen({Key? key, required this.email})
-      : super(key: key);
+    : super(key: key);
+
+  @override
+  State<RegistrationConfirmationScreen> createState() =>
+      _RegistrationConfirmationScreenState();
+}
+
+class _RegistrationConfirmationScreenState
+    extends State<RegistrationConfirmationScreen> {
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    // Simulate verification process with loading
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'Auth',
-          style: TextStyle(
-            fontFamily: 'Lexend',
-            fontWeight: FontWeight.w700,
-          ),
+          'Registration',
+          style: TextStyle(fontFamily: 'Lexend', fontWeight: FontWeight.w700),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
       body: SafeArea(
-        child: Stack(
-          children: [
-            // Main content centered
-            Center(
-              child: Container(
-                width: 350, // Increased width
-                padding: const EdgeInsets.all(32.0), // Increased padding
-                decoration: BoxDecoration(
-                  color: const Color(0xFFD9D9D9),
-                  borderRadius:
-                      BorderRadius.circular(16), // Slightly larger radius
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black12,
-                      blurRadius: 12,
-                      spreadRadius: 3,
-                    ),
-                  ],
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    const Text(
-                      'Verify Your\nEmail!',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 28, // Increased font size
-                        fontFamily: 'Lexend',
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 24), // Increased spacing
-                    Text(
-                      'We have sent you an email with a link to $email for verification.',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 18, // Increased font size
-                        fontFamily: 'Lexend',
-                        color: Colors.black54,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // Back button positioned at the bottom of the screen
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 24,
-              child: Center(
-                child: TextButton(
-                  onPressed: () {
-                    Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const SignInSignUpScreen(),
-                      ),
-                      (route) => false,
-                    );
-                  },
-                  style: TextButton.styleFrom(
-                    foregroundColor: Colors.black.withOpacity(0.6),
-                  ),
-                  child: const Text(
-                    'Back to Sign In/Sign Up',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontFamily: 'Lexend',
-                      decoration: TextDecoration.underline,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child:
+              _isLoading
+                  ? _buildLoadingIndicator()
+                  : AuthRegisterUtils.buildEmailSentStep(context, widget.email),
         ),
+      ),
+    );
+  }
+
+  // Loading indicator widget
+  Widget _buildLoadingIndicator() {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircularProgressIndicator(),
+          SizedBox(height: 24),
+          Text(
+            'Verifying your account...',
+            style: TextStyle(fontFamily: 'Lexend', fontSize: 16),
+          ),
+        ],
       ),
     );
   }

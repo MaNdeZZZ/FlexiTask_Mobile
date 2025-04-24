@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async'; // For delayed responses
+import 'profile.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // Add this import
 
 // Message model to handle chat data
 class ChatMessage {
@@ -25,9 +27,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
+      theme: ThemeData(primarySwatch: Colors.blue),
       home: const ChatbotScreen(),
     );
   }
@@ -46,12 +46,29 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
   final List<ChatMessage> _messages = [];
   bool _isBotTyping = false;
 
+  // Add a variable to store the profile image path
+  String? _profileImagePath;
+
   @override
   void initState() {
     super.initState();
 
     // Add initial welcome message
     _addBotMessage("Hello! I'm your task assistant. How can I help you today?");
+
+    // Load profile image if available
+    _loadProfileImage();
+  }
+
+  // Load profile image from SharedPreferences
+  Future<void> _loadProfileImage() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedPath = prefs.getString('profileImagePath');
+    if (savedPath != null && savedPath.isNotEmpty) {
+      setState(() {
+        _profileImagePath = savedPath;
+      });
+    }
   }
 
   @override
@@ -66,11 +83,9 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
     if (text.trim().isEmpty) return;
 
     setState(() {
-      _messages.add(ChatMessage(
-        text: text,
-        isUserMessage: true,
-        timestamp: DateTime.now(),
-      ));
+      _messages.add(
+        ChatMessage(text: text, isUserMessage: true, timestamp: DateTime.now()),
+      );
       _isBotTyping = true;
     });
 
@@ -84,11 +99,13 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
   // Add a message from the bot
   void _addBotMessage(String text) {
     setState(() {
-      _messages.add(ChatMessage(
-        text: text,
-        isUserMessage: false,
-        timestamp: DateTime.now(),
-      ));
+      _messages.add(
+        ChatMessage(
+          text: text,
+          isUserMessage: false,
+          timestamp: DateTime.now(),
+        ),
+      );
     });
 
     _scrollToBottom();
@@ -119,19 +136,22 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
         botResponse = "Hello! How can I help you with your tasks today?";
       } else if (lowerUserMessage.contains('task') &&
           lowerUserMessage.contains('today')) {
-        botResponse = "Based on your schedule, you have 3 tasks for today:\n\n"
+        botResponse =
+            "Based on your schedule, you have 3 tasks for today:\n\n"
             "1. Attend webinar on Flutter development at 2 PM\n"
             "2. Complete prototype for FlexiTask\n"
             "3. Team meeting at 3 PM\n\n"
             "Would you like me to prioritize these for you?";
       } else if (lowerUserMessage.contains('prioritize') ||
           lowerUserMessage.contains('priority')) {
-        botResponse = "Here's the suggested priority order:\n\n"
+        botResponse =
+            "Here's the suggested priority order:\n\n"
             "1. Complete prototype for FlexiTask (High priority)\n"
             "2. Attend webinar on Flutter development at 2 PM (Medium priority)\n"
             "3. Team meeting at 3 PM (Medium priority)";
       } else if (lowerUserMessage.contains('tomorrow')) {
-        botResponse = "You have 2 tasks scheduled for tomorrow:\n\n"
+        botResponse =
+            "You have 2 tasks scheduled for tomorrow:\n\n"
             "1. Review project requirements\n"
             "2. Doctor appointment at 10 AM\n\n"
             "Would you like me to add another task for tomorrow?";
@@ -164,9 +184,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
               // Main content
               Expanded(
                 child: Container(
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                  ),
+                  decoration: const BoxDecoration(color: Colors.white),
                   child: Column(
                     children: [
                       // Logo, back button and profile section
@@ -202,20 +220,36 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                               ],
                             ),
 
-                            // Profile picture
-                            Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: const Color(0xFFD9D9D9),
-                                  width: 2,
+                            // Profile picture - made clickable
+                            GestureDetector(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const ProfileScreen(),
+                                  ),
+                                ).then(
+                                  (_) => _loadProfileImage(),
+                                ); // Reload when returning from profile
+                              },
+                              child: Container(
+                                width: 40,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: const Color(0xFFD9D9D9),
+                                    width: 2,
+                                  ),
                                 ),
-                              ),
-                              child: ClipOval(
-                                child: Container(
-                                  color: Colors.black,
+                                child: ClipOval(
+                                  child:
+                                      _profileImagePath != null
+                                          ? Image.asset(
+                                            _profileImagePath!,
+                                            fit: BoxFit.cover,
+                                          )
+                                          : Container(color: Colors.black),
                                 ),
                               ),
                             ),
@@ -226,10 +260,10 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                       // Prompt text
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 16),
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
+                          horizontal: 16,
+                          vertical: 16,
                         ),
+                        decoration: const BoxDecoration(color: Colors.white),
                         child: const Center(
                           child: Text(
                             'Ask anything regarding your task!',
@@ -244,7 +278,10 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
 
                       // Divider
                       const Divider(
-                          height: 1, thickness: 1, color: Colors.grey),
+                        height: 1,
+                        thickness: 1,
+                        color: Colors.grey,
+                      ),
 
                       // Chat area with messages
                       Expanded(
@@ -262,7 +299,9 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                                   alignment: Alignment.centerLeft,
                                   child: Container(
                                     margin: const EdgeInsets.only(
-                                        top: 8.0, bottom: 8.0),
+                                      top: 8.0,
+                                      bottom: 8.0,
+                                    ),
                                     padding: const EdgeInsets.all(12),
                                     decoration: BoxDecoration(
                                       color: Colors.grey[400],
@@ -301,18 +340,53 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                           ],
                         ),
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 10),
+                          horizontal: 16,
+                          vertical: 10,
+                        ),
                         child: Row(
                           children: [
+                            // New Chat button
+                            Container(
+                              margin: const EdgeInsets.only(right: 8),
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Color(0xFFD9D9D9),
+                              ),
+                              child: IconButton(
+                                icon: const Icon(
+                                  Icons.add_comment,
+                                  color: Colors.black,
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    _messages.clear(); // Clear chat history
+                                    // Add welcome message again
+                                    _addBotMessage(
+                                      "Hello! I'm your task assistant. How can I help you today?",
+                                    );
+                                  });
+                                },
+                                tooltip: 'New Chat',
+                                iconSize: 20,
+                                padding: const EdgeInsets.all(8),
+                                constraints: const BoxConstraints(),
+                              ),
+                            ),
+
                             // Text input
                             Expanded(
                               child: Container(
                                 decoration: BoxDecoration(
-                                  color:
-                                      const Color.fromARGB(255, 245, 245, 245),
+                                  color: const Color.fromARGB(
+                                    255,
+                                    245,
+                                    245,
+                                    245,
+                                  ),
                                   borderRadius: BorderRadius.circular(25),
-                                  border:
-                                      Border.all(color: Colors.grey.shade200),
+                                  border: Border.all(
+                                    color: Colors.grey.shade200,
+                                  ),
                                 ),
                                 child: TextField(
                                   controller: _controller,
@@ -335,8 +409,8 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                                   ),
                                   maxLines: null,
                                   textInputAction: TextInputAction.send,
-                                  onSubmitted: (value) =>
-                                      _addUserMessage(value),
+                                  onSubmitted:
+                                      (value) => _addUserMessage(value),
                                 ),
                               ),
                             ),
@@ -350,10 +424,12 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                                   color: Color(0xFFD9D9D9),
                                 ),
                                 child: IconButton(
-                                  icon: const Icon(Icons.send,
-                                      color: Colors.black),
-                                  onPressed: () =>
-                                      _addUserMessage(_controller.text),
+                                  icon: const Icon(
+                                    Icons.send,
+                                    color: Colors.black,
+                                  ),
+                                  onPressed:
+                                      () => _addUserMessage(_controller.text),
                                   tooltip: 'Send message',
                                 ),
                               ),
@@ -426,8 +502,12 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
           height: 8,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: const Color.fromARGB(255, 70, 70, 70)
-                .withOpacity(value as double),
+            color: const Color.fromARGB(
+              255,
+              70,
+              70,
+              70,
+            ).withOpacity(value as double),
           ),
         );
       },

@@ -11,6 +11,7 @@ class ForgotPasswordScreen extends StatefulWidget {
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   int _currentStep = 0;
   final _emailController = TextEditingController();
+  bool _isProcessing = false;
 
   @override
   void dispose() {
@@ -21,7 +22,17 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   void _requestVerificationLink() {
     // Here you would implement the actual logic to send a password reset link
     setState(() {
-      _currentStep = 1;
+      _isProcessing = true;
+    });
+
+    // Simulate network delay
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) {
+        setState(() {
+          _isProcessing = false;
+          _currentStep = 1;
+        });
+      }
     });
   }
 
@@ -31,10 +42,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       appBar: AppBar(
         title: const Text(
           'Forgot Password',
-          style: TextStyle(
-            fontFamily: 'Lexend',
-            fontWeight: FontWeight.w700,
-          ),
+          style: TextStyle(fontFamily: 'Lexend', fontWeight: FontWeight.w700),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -53,6 +61,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   }
 
   Widget _buildCurrentStep() {
+    if (_isProcessing) {
+      return AuthUtils.buildLoadingStep();
+    }
+
     switch (_currentStep) {
       case 0:
         return AuthUtils.buildEmailVerificationStep(

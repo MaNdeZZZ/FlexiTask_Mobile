@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'signin_signup.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // Add this import
+import 'resetpassword.dart'; // Add this import
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({Key? key}) : super(key: key);
@@ -10,19 +12,36 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   // Controllers for text fields
-  final TextEditingController _nameController =
-      TextEditingController(text: "John Doe");
-  final TextEditingController _emailController =
-      TextEditingController(text: "john.doe@example.com");
+  final TextEditingController _nameController = TextEditingController(
+    text: "John Doe",
+  );
+  final TextEditingController _emailController = TextEditingController(
+    text: "john.doe@example.com",
+  );
 
-  // Settings toggles - removed dark mode, kept notifications
-  bool _notifications = true;
+  // Edit mode state
+  bool _isEditing = false;
 
   // Selected profile picture
   String? _profileImagePath;
 
-  // Edit mode state
-  bool _isEditing = false;
+  @override
+  void initState() {
+    super.initState();
+    // Load profile picture if available
+    _loadProfileImage();
+  }
+
+  // Load profile image from SharedPreferences
+  Future<void> _loadProfileImage() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedPath = prefs.getString('profileImagePath');
+    if (savedPath != null && savedPath.isNotEmpty) {
+      setState(() {
+        _profileImagePath = savedPath;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -49,7 +68,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 onTap: () {
                   // In a real app, you would implement camera functionality
                   Navigator.pop(context);
-                  _showImageSelectionSuccess();
+                  // For demo purposes, use a sample image path
+                  _saveProfileImage('assets/images/profile1.png');
                 },
               ),
               ListTile(
@@ -61,7 +81,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 onTap: () {
                   // In a real app, you would implement gallery selection
                   Navigator.pop(context);
-                  _showImageSelectionSuccess();
+                  // For demo purposes, we'll simulate picking from a few sample images
+                  _showSampleImagePicker();
                 },
               ),
             ],
@@ -71,16 +92,69 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // Show a success message after selecting an image
-  void _showImageSelectionSuccess() {
+  // Show image picker with sample images for demo purposes
+  void _showSampleImagePicker() {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text(
+              "Select Sample Image",
+              style: TextStyle(fontFamily: 'Lexend'),
+            ),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: GridView.count(
+                crossAxisCount: 3,
+                shrinkWrap: true,
+                children: [
+                  _buildSampleImageOption('assets/images/logo.png'),
+                  _buildSampleImageOption('assets/images/profile1.png'),
+                  _buildSampleImageOption('assets/images/profile2.png'),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+            ],
+          ),
+    );
+  }
+
+  // Build sample image selection item
+  Widget _buildSampleImageOption(String imagePath) {
+    return InkWell(
+      onTap: () {
+        Navigator.pop(context);
+        _saveProfileImage(imagePath);
+      },
+      child: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Image.asset(imagePath, fit: BoxFit.cover),
+      ),
+    );
+  }
+
+  // Save the selected profile image path to SharedPreferences
+  void _saveProfileImage(String imagePath) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('profileImagePath', imagePath);
+
     setState(() {
-      // In a real app, this would be the actual image path
-      _profileImagePath = 'assets/images/logo.png';
+      _profileImagePath = imagePath;
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Profile picture updated')),
-    );
+    _showImageSelectionSuccess();
+  }
+
+  // Show a success message after selecting an image
+  void _showImageSelectionSuccess() {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Profile picture updated')));
   }
 
   @override
@@ -94,9 +168,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               // Main content
               Expanded(
                 child: Container(
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                  ),
+                  decoration: const BoxDecoration(color: Colors.white),
                   child: Column(
                     children: [
                       // Logo and back button
@@ -129,28 +201,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ),
                             ),
                             const Spacer(),
-                            // Edit/Save button
-                            TextButton(
-                              onPressed: () {
-                                setState(() {
-                                  if (_isEditing) {
-                                    // Save changes here in a real app
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                          content: Text('Profile updated')),
-                                    );
-                                  }
-                                  _isEditing = !_isEditing;
-                                });
-                              },
-                              child: Text(
-                                _isEditing ? 'Save' : 'Edit',
-                                style: const TextStyle(
-                                  fontFamily: 'Lexend',
-                                  color: Colors.blue,
-                                ),
-                              ),
-                            ),
                           ],
                         ),
                       ),
@@ -162,84 +212,94 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Profile picture section - Enhanced with selection
+                              // Profile picture section - Always showing edit button
                               Center(
                                 child: Column(
                                   children: [
-                                    InkWell(
-                                      onTap: _isEditing
-                                          ? _showImageSourceOptions
-                                          : null,
-                                      child: Stack(
-                                        children: [
-                                          // Profile picture
-                                          Container(
-                                            width: 120,
-                                            height: 120,
-                                            decoration: BoxDecoration(
-                                              shape: BoxShape.circle,
-                                              color: Colors.grey[200],
-                                              image: DecorationImage(
-                                                image: AssetImage(
-                                                  _profileImagePath ??
-                                                      'assets/images/logo.png',
-                                                ),
-                                                fit: BoxFit.cover,
+                                    Stack(
+                                      children: [
+                                        // Profile picture
+                                        Container(
+                                          width: 120,
+                                          height: 120,
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: Colors.grey[200],
+                                            image: DecorationImage(
+                                              image: AssetImage(
+                                                _profileImagePath ??
+                                                    'assets/images/logo.png',
                                               ),
+                                              fit: BoxFit.cover,
                                             ),
-                                          ),
-
-                                          // Edit icon on profile picture
-                                          if (_isEditing)
-                                            Positioned(
-                                              right: 0,
-                                              bottom: 0,
-                                              child: Container(
-                                                padding:
-                                                    const EdgeInsets.all(8),
-                                                decoration: BoxDecoration(
-                                                  color:
-                                                      const Color(0xFFD9D9D9),
-                                                  shape: BoxShape.circle,
-                                                  border: Border.all(
-                                                      color: Colors.white,
-                                                      width: 2),
-                                                ),
-                                                child: const Icon(
-                                                  Icons.camera_alt,
-                                                  size: 20,
-                                                  color: Colors.black,
-                                                ),
-                                              ),
-                                            ),
-                                        ],
-                                      ),
-                                    ),
-                                    if (_isEditing)
-                                      const Padding(
-                                        padding: EdgeInsets.only(top: 8.0),
-                                        child: Text(
-                                          'Tap to change profile picture',
-                                          style: TextStyle(
-                                            fontFamily: 'Lexend',
-                                            color: Colors.grey,
-                                            fontSize: 12,
                                           ),
                                         ),
-                                      ),
+
+                                        // Edit icon on profile picture - Always visible
+                                        Positioned(
+                                          right: 0,
+                                          bottom: 0,
+                                          child: GestureDetector(
+                                            onTap: _showImageSourceOptions,
+                                            child: Container(
+                                              padding: const EdgeInsets.all(8),
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFFD9D9D9),
+                                                shape: BoxShape.circle,
+                                                border: Border.all(
+                                                  color: Colors.white,
+                                                  width: 2,
+                                                ),
+                                              ),
+                                              child: const Icon(
+                                                Icons.camera_alt,
+                                                size: 20,
+                                                color: Colors.black,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                     const SizedBox(height: 16),
                                   ],
                                 ),
                               ),
 
-                              // User details section
-                              const Text(
-                                'Personal Information',
-                                style: TextStyle(
-                                  fontFamily: 'Lexend',
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                              // User details section - Edit icon moved to far right
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text(
+                                    'Personal Information',
+                                    style: TextStyle(
+                                      fontFamily: 'Lexend',
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  // Edit icon moved to far right
+                                  GestureDetector(
+                                    onTap: () {
+                                      setState(() {
+                                        _isEditing = !_isEditing;
+                                      });
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.all(4),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFD9D9D9),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        Icons.edit,
+                                        size: 16,
+                                        color: Colors.black,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                               const SizedBox(height: 16),
 
@@ -262,30 +322,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ),
                               const SizedBox(height: 24),
 
-                              // Settings section
-                              const Text(
-                                'Settings',
-                                style: TextStyle(
-                                  fontFamily: 'Lexend',
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-
-                              // Notifications switch (only toggle, dark mode removed)
-                              _buildSettingToggle(
-                                title: 'Notifications',
-                                icon: Icons.notifications,
-                                value: _notifications,
-                                onChanged: (value) {
-                                  setState(() {
-                                    _notifications = value;
-                                  });
-                                },
-                              ),
-                              const SizedBox(height: 24),
-
                               // Account actions
                               const Text(
                                 'Account',
@@ -302,11 +338,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 title: 'Change Password',
                                 icon: Icons.lock,
                                 onTap: () {
-                                  // Add change password functionality
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                        content: Text(
-                                            'Change password functionality')),
+                                  // Navigate to the Reset Password screen
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder:
+                                          (context) =>
+                                              const ResetPasswordScreen(),
+                                    ),
                                   );
                                 },
                               ),
@@ -321,8 +360,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   Navigator.pushAndRemoveUntil(
                                     context,
                                     MaterialPageRoute(
-                                        builder: (context) =>
-                                            const SignInSignUpScreen()),
+                                      builder:
+                                          (context) =>
+                                              const SignInSignUpScreen(),
+                                    ),
                                     (route) => false,
                                   );
                                 },
@@ -364,8 +405,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           labelText: label,
           prefixIcon: Icon(icon),
           border: InputBorder.none,
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 12,
+          ),
           labelStyle: const TextStyle(fontFamily: 'Lexend'),
         ),
         style: const TextStyle(fontFamily: 'Lexend'),
@@ -373,7 +416,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // Helper method to build setting toggles
+  // Helper method to build setting toggles - This is still needed for potential future settings
   Widget _buildSettingToggle({
     required String title,
     required IconData icon,
@@ -389,10 +432,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       child: ListTile(
         leading: Icon(icon),
-        title: Text(
-          title,
-          style: const TextStyle(fontFamily: 'Lexend'),
-        ),
+        title: Text(title, style: const TextStyle(fontFamily: 'Lexend')),
         trailing: Switch(
           value: value,
           onChanged: onChanged,
@@ -417,10 +457,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         border: Border.all(color: Colors.grey[300]!),
       ),
       child: ListTile(
-        leading: Icon(
-          icon,
-          color: isDestructive ? Colors.red : null,
-        ),
+        leading: Icon(icon, color: isDestructive ? Colors.red : null),
         title: Text(
           title,
           style: TextStyle(
@@ -429,8 +466,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
         trailing: const Icon(Icons.chevron_right),
-        onTap: onTap,
+        onTap: () {
+          if (title == 'Log Out') {
+            // Clear remember me credentials on logout
+            _clearRememberMeCredentials();
+          }
+          onTap();
+        },
       ),
     );
+  }
+
+  // Add method to clear remember me credentials
+  void _clearRememberMeCredentials() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('rememberMe', false);
+    await prefs.remove('email');
+    await prefs.remove('password');
+    await prefs.remove('rememberMeExpiry');
+
+    print("Logout: Remember me credentials cleared"); // Debug output
   }
 }

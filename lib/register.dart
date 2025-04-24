@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'authregister.dart'; // Import the new file
+import 'authregister.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // Add this import
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({Key? key}) : super(key: key);
@@ -9,7 +10,6 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  bool _rememberMe = false;
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _verifyPasswordController = TextEditingController();
@@ -24,23 +24,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   // New method to handle registration
   void _register() {
-    // Here you would implement actual registration logic
-    // For now, we'll just navigate to the confirmation screen
-
     // Validate form first (basic validation)
     if (_emailController.text.isEmpty ||
         _passwordController.text.isEmpty ||
         _verifyPasswordController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill all fields')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please fill all fields')));
       return;
     }
 
     if (_passwordController.text != _verifyPasswordController.text) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Passwords do not match')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Passwords do not match')));
       return;
     }
 
@@ -48,9 +45,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => RegistrationConfirmationScreen(
-          email: _emailController.text,
-        ),
+        builder:
+            (context) =>
+                RegistrationConfirmationScreen(email: _emailController.text),
       ),
     );
   }
@@ -61,10 +58,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       appBar: AppBar(
         title: const Text(
           'Sign Up',
-          style: TextStyle(
-            fontFamily: 'Lexend',
-            fontWeight: FontWeight.w700,
-          ),
+          style: TextStyle(fontFamily: 'Lexend', fontWeight: FontWeight.w700),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -144,30 +138,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
               ),
 
-              // Remember me checkbox
-              Row(
-                children: [
-                  Checkbox(
-                    value: _rememberMe,
-                    onChanged: (value) {
-                      setState(() {
-                        _rememberMe = value ?? false;
-                      });
-                    },
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                  const Text(
-                    'Remember me',
-                    style: TextStyle(
-                      fontFamily: 'Lexend',
-                      fontSize: 16,
-                    ),
-                  ),
-                ],
-              ),
-
               // Add spacer to push buttons toward bottom
               const Spacer(flex: 2),
 
@@ -175,7 +145,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ElevatedButton(
                 onPressed: _register, // Use the new method
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFD9D9D9),
+                  backgroundColor: const Color(
+                    0xFFD9D9D9,
+                  ), // Changed back to match signin_signup.dart
                   minimumSize: const Size.fromHeight(50),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12.0),
@@ -208,10 +180,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Image.asset(
-                      'assets/images/google_logo.png',
-                      height: 24,
-                    ),
+                    Image.asset('assets/images/google_logo.png', height: 24),
                     const SizedBox(width: 12),
                     const Text(
                       'Sign up with Google',

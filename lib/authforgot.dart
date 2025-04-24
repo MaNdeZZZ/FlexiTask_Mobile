@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 
 class AuthUtils {
   static Widget buildEmailVerificationStep(
-      TextEditingController emailController, VoidCallback onSendLink) {
+    TextEditingController emailController,
+    VoidCallback onSendLink,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -31,9 +33,7 @@ class AuthUtils {
             labelText: 'Email',
             hintText: 'Enter your email address',
             prefixIcon: const Icon(Icons.email_outlined),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             labelStyle: const TextStyle(fontFamily: 'Lexend'),
           ),
         ),
@@ -68,11 +68,7 @@ class AuthUtils {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Icon(
-          Icons.mark_email_read,
-          size: 80,
-          color: Colors.green,
-        ),
+        const Icon(Icons.mark_email_read, size: 80, color: Colors.green),
         const SizedBox(height: 24),
         const Text(
           'Reset Link Sent!',
@@ -116,6 +112,23 @@ class AuthUtils {
           ),
         ),
       ],
+    );
+  }
+
+  // New method to show loading indicator
+  static Widget buildLoadingStep() {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircularProgressIndicator(),
+          SizedBox(height: 24),
+          Text(
+            'Sending verification email...',
+            style: TextStyle(fontFamily: 'Lexend', fontSize: 16),
+          ),
+        ],
+      ),
     );
   }
 }
