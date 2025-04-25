@@ -51,7 +51,8 @@ class DefaultFirebaseOptions {
     appId: '1:211642642283:android:3f4cfb0fe6e44da527e62e',
     messagingSenderId: '211642642283',
     projectId: 'flexi-task-4fb2a',
-    databaseURL: 'https://flexi-task-4fb2a-default-rtdb.asia-southeast1.firebasedatabase.app',
+    databaseURL:
+        'https://flexi-task-4fb2a-default-rtdb.asia-southeast1.firebasedatabase.app',
     storageBucket: 'flexi-task-4fb2a.firebasestorage.app',
   );
 
@@ -60,7 +61,8 @@ class DefaultFirebaseOptions {
     appId: '1:211642642283:ios:a10f88acfa74c8e527e62e',
     messagingSenderId: '211642642283',
     projectId: 'flexi-task-4fb2a',
-    databaseURL: 'https://flexi-task-4fb2a-default-rtdb.asia-southeast1.firebasedatabase.app',
+    databaseURL:
+        'https://flexi-task-4fb2a-default-rtdb.asia-southeast1.firebasedatabase.app',
     storageBucket: 'flexi-task-4fb2a.firebasestorage.app',
     iosBundleId: 'com.example.flexitaskMobile',
   );
@@ -71,9 +73,9 @@ class DefaultFirebaseOptions {
     messagingSenderId: '211642642283',
     projectId: 'flexi-task-4fb2a',
     authDomain: 'flexi-task-4fb2a.firebaseapp.com',
-    databaseURL: 'https://flexi-task-4fb2a-default-rtdb.asia-southeast1.firebasedatabase.app',
+    databaseURL:
+        'https://flexi-task-4fb2a-default-rtdb.asia-southeast1.firebasedatabase.app',
     storageBucket: 'flexi-task-4fb2a.firebasestorage.app',
     measurementId: 'G-YNE81STSKB',
   );
-
 }

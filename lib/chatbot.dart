@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'dart:async'; // For delayed responses
 import 'profile.dart';
+import 'completed.dart'; // Add this import
+import 'dashboard.dart'; // Add this import to access _completedTasks
+import 'theme_constants.dart'; // Add this import
+import 'transitions.dart'; // Add this import
 import 'package:shared_preferences/shared_preferences.dart'; // Add this import
+import 'dart:io'; // Add this import for File class
 
 // Message model to handle chat data
 class ChatMessage {
@@ -48,6 +53,13 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
 
   // Add a variable to store the profile image path
   String? _profileImagePath;
+
+  // Set the active index for this screen
+  final int _selectedIndex = 0; // Assistant tab is active
+
+  // Reference to completed tasks from dashboard
+  final List<Task> _localCompletedTasks =
+      []; // Create a local empty list for ChatbotScreen
 
   @override
   void initState() {
@@ -136,22 +148,19 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
         botResponse = "Hello! How can I help you with your tasks today?";
       } else if (lowerUserMessage.contains('task') &&
           lowerUserMessage.contains('today')) {
-        botResponse =
-            "Based on your schedule, you have 3 tasks for today:\n\n"
+        botResponse = "Based on your schedule, you have 3 tasks for today:\n\n"
             "1. Attend webinar on Flutter development at 2 PM\n"
             "2. Complete prototype for FlexiTask\n"
             "3. Team meeting at 3 PM\n\n"
             "Would you like me to prioritize these for you?";
       } else if (lowerUserMessage.contains('prioritize') ||
           lowerUserMessage.contains('priority')) {
-        botResponse =
-            "Here's the suggested priority order:\n\n"
+        botResponse = "Here's the suggested priority order:\n\n"
             "1. Complete prototype for FlexiTask (High priority)\n"
             "2. Attend webinar on Flutter development at 2 PM (Medium priority)\n"
             "3. Team meeting at 3 PM (Medium priority)";
       } else if (lowerUserMessage.contains('tomorrow')) {
-        botResponse =
-            "You have 2 tasks scheduled for tomorrow:\n\n"
+        botResponse = "You have 2 tasks scheduled for tomorrow:\n\n"
             "1. Review project requirements\n"
             "2. Doctor appointment at 10 AM\n\n"
             "Would you like me to add another task for tomorrow?";
@@ -171,6 +180,36 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
         _addBotMessage(botResponse);
       });
     });
+  }
+
+  // Helper method to build profile image based on path type
+  Widget _buildProfileImage() {
+    if (_profileImagePath != null) {
+      // Check if it's a file path (starts with / or file:)
+      if (_profileImagePath!.startsWith('/') ||
+          _profileImagePath!.startsWith('file:')) {
+        return Image.file(
+          File(_profileImagePath!),
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            // Fall back to default image on error
+            return Image.asset('assets/images/logo.png', fit: BoxFit.cover);
+          },
+        );
+      } else {
+        // It's an asset path
+        return Image.asset(
+          _profileImagePath!,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            return Image.asset('assets/images/logo.png', fit: BoxFit.cover);
+          },
+        );
+      }
+    } else {
+      // Default fallback image
+      return Image.asset('assets/images/logo.png', fit: BoxFit.cover);
+    }
   }
 
   @override
@@ -243,13 +282,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                                   ),
                                 ),
                                 child: ClipOval(
-                                  child:
-                                      _profileImagePath != null
-                                          ? Image.asset(
-                                            _profileImagePath!,
-                                            fit: BoxFit.cover,
-                                          )
-                                          : Container(color: Colors.black),
+                                  child: _buildProfileImage(),
                                 ),
                               ),
                             ),
@@ -409,8 +442,8 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                                   ),
                                   maxLines: null,
                                   textInputAction: TextInputAction.send,
-                                  onSubmitted:
-                                      (value) => _addUserMessage(value),
+                                  onSubmitted: (value) =>
+                                      _addUserMessage(value),
                                 ),
                               ),
                             ),
@@ -428,8 +461,8 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                                     Icons.send,
                                     color: Colors.black,
                                   ),
-                                  onPressed:
-                                      () => _addUserMessage(_controller.text),
+                                  onPressed: () =>
+                                      _addUserMessage(_controller.text),
                                   tooltip: 'Send message',
                                 ),
                               ),
@@ -445,7 +478,71 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
           ),
         ),
       ),
-      // Remove the floating bottomSheet and bottomNavigationBar
+      // WhatsApp style bottom navigation
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              offset: const Offset(0, -1),
+              blurRadius: 5,
+              color: Colors.black.withOpacity(0.1),
+            ),
+          ],
+        ),
+        child: BottomNavigationBar(
+          currentIndex: _selectedIndex,
+          onTap: (index) {
+            if (index == _selectedIndex)
+              return; // Don't navigate if already on this tab
+
+            switch (index) {
+              case 1: // Home/Add Task
+                // Just pop back to dashboard instead of creating a new navigation
+                Navigator.pop(context);
+                break;
+              case 2: // Completed
+                // Use a clean navigation approach to prevent stacking
+                AppTransitions.pushReplacement(
+                  context,
+                  CompletedTasksScreen(
+                    completedTasks: _localCompletedTasks,
+                    onTaskRestored: (task) {}, // Empty handler
+                  ),
+                );
+                break;
+            }
+          },
+          backgroundColor: Colors.white,
+          selectedItemColor: AppColors.accent,
+          unselectedItemColor: Colors.grey,
+          selectedLabelStyle: const TextStyle(
+            fontFamily: 'Lexend',
+            fontWeight: FontWeight.w500,
+            fontSize: 12,
+          ),
+          unselectedLabelStyle: const TextStyle(
+            fontFamily: 'Lexend',
+            fontWeight: FontWeight.normal,
+            fontSize: 11,
+          ),
+          type: BottomNavigationBarType.fixed,
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.psychology),
+              label: 'Assistant',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.home),
+              label: 'Home',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.check_circle_outline),
+              label: 'Completed',
+            ),
+          ],
+        ),
+      ),
     );
   }
 

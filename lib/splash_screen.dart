@@ -72,7 +72,7 @@ class _LoadingPageState extends State<LoadingPage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Image.asset(
-              'assets/logo_tagline.png', // Ensure this image exists in assets
+              'assets/images/logo_tagline.png', // Ensure this image exists in assets
               width: 500,
               height: 500,
             ),

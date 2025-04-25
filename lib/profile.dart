@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 import 'signin_signup.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // Add this import
-import 'resetpassword.dart'; // Add this import
+import 'package:shared_preferences/shared_preferences.dart';
+import 'resetpassword.dart';
+import 'services/google_auth_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({Key? key}) : super(key: key);
@@ -22,14 +25,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // Edit mode state
   bool _isEditing = false;
 
-  // Selected profile picture
+  // Updated to handle real file paths
   String? _profileImagePath;
+  File? _profileImageFile;
+
+  // URL for profile image from Google
+  String? _profileImageUrl;
 
   @override
   void initState() {
     super.initState();
-    // Load profile picture if available
-    _loadProfileImage();
+    // Load profile image and user data
+    _loadProfileData();
+  }
+
+  // Load profile data including Google account info
+  Future<void> _loadProfileData() async {
+    // Try to get Google user data first
+    final googleUser = await GoogleAuthService.getCurrentUser();
+
+    if (googleUser != null) {
+      setState(() {
+        _nameController.text = googleUser['displayName'] ?? 'Google User';
+        _emailController.text = googleUser['email'] ?? '';
+        _profileImageUrl = googleUser['photoURL'];
+      });
+    } else {
+      // Fall back to saved profile image if no Google data
+      _loadProfileImage();
+    }
   }
 
   // Load profile image from SharedPreferences
@@ -50,7 +74,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.dispose();
   }
 
-  // Show dialog to select profile picture source
+  // Show dialog to select profile picture source with permission checks
   void _showImageSourceOptions() {
     showModalBottomSheet(
       context: context,
@@ -66,10 +90,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   style: TextStyle(fontFamily: 'Lexend'),
                 ),
                 onTap: () {
-                  // In a real app, you would implement camera functionality
                   Navigator.pop(context);
-                  // For demo purposes, use a sample image path
-                  _saveProfileImage('assets/images/profile1.png');
+                  _pickImage(ImageSource.camera);
                 },
               ),
               ListTile(
@@ -79,10 +101,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   style: TextStyle(fontFamily: 'Lexend'),
                 ),
                 onTap: () {
-                  // In a real app, you would implement gallery selection
                   Navigator.pop(context);
-                  // For demo purposes, we'll simulate picking from a few sample images
-                  _showSampleImagePicker();
+                  _pickImage(ImageSource.gallery);
                 },
               ),
             ],
@@ -92,50 +112,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // Show image picker with sample images for demo purposes
-  void _showSampleImagePicker() {
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text(
-              "Select Sample Image",
-              style: TextStyle(fontFamily: 'Lexend'),
-            ),
-            content: SizedBox(
-              width: double.maxFinite,
-              child: GridView.count(
-                crossAxisCount: 3,
-                shrinkWrap: true,
-                children: [
-                  _buildSampleImageOption('assets/images/logo.png'),
-                  _buildSampleImageOption('assets/images/profile1.png'),
-                  _buildSampleImageOption('assets/images/profile2.png'),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel'),
-              ),
-            ],
-          ),
-    );
-  }
+  // Simplified image picking function
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final XFile? pickedFile = await ImagePicker().pickImage(
+        source: source,
+        maxWidth: 1000,
+        maxHeight: 1000,
+        imageQuality: 85,
+      );
 
-  // Build sample image selection item
-  Widget _buildSampleImageOption(String imagePath) {
-    return InkWell(
-      onTap: () {
-        Navigator.pop(context);
-        _saveProfileImage(imagePath);
-      },
-      child: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Image.asset(imagePath, fit: BoxFit.cover),
-      ),
-    );
+      if (pickedFile != null) {
+        setState(() {
+          _profileImageFile = File(pickedFile.path);
+          _profileImagePath = pickedFile.path;
+        });
+
+        // Save the profile image path
+        _saveProfileImage(pickedFile.path);
+      }
+    } catch (e) {
+      debugPrint('Error picking image: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content:
+                Text('Error accessing image. Please check your permissions.')),
+      );
+    }
   }
 
   // Save the selected profile image path to SharedPreferences
@@ -218,20 +221,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   children: [
                                     Stack(
                                       children: [
-                                        // Profile picture
+                                        // Profile picture - display image based on its source
                                         Container(
                                           width: 120,
                                           height: 120,
                                           decoration: BoxDecoration(
                                             shape: BoxShape.circle,
                                             color: Colors.grey[200],
-                                            image: DecorationImage(
-                                              image: AssetImage(
-                                                _profileImagePath ??
-                                                    'assets/images/logo.png',
-                                              ),
-                                              fit: BoxFit.cover,
-                                            ),
+                                          ),
+                                          child: ClipOval(
+                                            child: _buildProfileImage(),
                                           ),
                                         ),
 
@@ -342,9 +341,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder:
-                                          (context) =>
-                                              const ResetPasswordScreen(),
+                                      builder: (context) =>
+                                          const ResetPasswordScreen(),
                                     ),
                                   );
                                 },
@@ -355,14 +353,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 title: 'Log Out',
                                 icon: Icons.logout,
                                 isDestructive: true,
-                                onTap: () {
-                                  // Navigate to sign in/sign up screen
+                                onTap: () async {
+                                  // Sign out from Google
+                                  await GoogleAuthService.signOut();
+
+                                  // Navigate to sign in screen
                                   Navigator.pushAndRemoveUntil(
                                     context,
                                     MaterialPageRoute(
-                                      builder:
-                                          (context) =>
-                                              const SignInSignUpScreen(),
+                                      builder: (context) =>
+                                          const SignInSignUpScreen(),
                                     ),
                                     (route) => false,
                                   );
@@ -466,10 +466,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
         trailing: const Icon(Icons.chevron_right),
-        onTap: () {
+        onTap: () async {
           if (title == 'Log Out') {
             // Clear remember me credentials on logout
             _clearRememberMeCredentials();
+
+            // Also sign out from Google if user was signed in with Google
+            await GoogleAuthService.signOut();
           }
           onTap();
         },
@@ -486,5 +489,46 @@ class _ProfileScreenState extends State<ProfileScreen> {
     await prefs.remove('rememberMeExpiry');
 
     print("Logout: Remember me credentials cleared"); // Debug output
+  }
+
+  // Helper method to build profile image from various sources
+  Widget _buildProfileImage() {
+    // 1. If we have a Google profile image URL, use that
+    if (_profileImageUrl != null) {
+      return Image.network(
+        _profileImageUrl!,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          // Fall back to default image on error
+          return Image.asset('assets/images/logo.png', fit: BoxFit.cover);
+        },
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return const Center(child: CircularProgressIndicator());
+        },
+      );
+    }
+    // 2. If we have a local file path (from camera/gallery)
+    else if (_profileImagePath != null) {
+      // Check if it's a file path (starts with /) or asset path
+      if (_profileImagePath!.startsWith('/') ||
+          _profileImagePath!.startsWith('file:')) {
+        return Image.file(
+          File(_profileImagePath!),
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            // Fall back to default image on error
+            return Image.asset('assets/images/logo.png', fit: BoxFit.cover);
+          },
+        );
+      } else {
+        // It's an asset path
+        return Image.asset(_profileImagePath!, fit: BoxFit.cover);
+      }
+    }
+    // 3. Default fallback image
+    else {
+      return Image.asset('assets/images/logo.png', fit: BoxFit.cover);
+    }
   }
 }

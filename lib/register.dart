@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'authregister.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // Add this import
+import 'package:shared_preferences/shared_preferences.dart';
+import 'services/google_auth_service.dart';
+import 'dashboard.dart';
+import 'local_notification.dart'; // Add this import
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({Key? key}) : super(key: key);
@@ -13,6 +16,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _verifyPasswordController = TextEditingController();
+
+  // Add a variable to store the extracted username
+  String _extractedUsername = "";
 
   @override
   void dispose() {
@@ -41,15 +47,98 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
+    // Validate password strength
+    final passwordValidationResult =
+        _validatePassword(_passwordController.text);
+    if (passwordValidationResult.isNotEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(passwordValidationResult)));
+      return;
+    }
+
+    // Extract username from email address before navigating
+    final email = _emailController.text.trim();
+    _extractedUsername = _extractUsernameFromEmail(email);
+
+    // Save the username to SharedPreferences for later use
+    _saveUsername(_extractedUsername);
+
     // Navigate to the confirmation screen
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder:
-            (context) =>
-                RegistrationConfirmationScreen(email: _emailController.text),
+        builder: (context) => RegistrationConfirmationScreen(
+          email: email,
+          username:
+              _extractedUsername, // Pass the username to confirmation screen
+        ),
       ),
     );
+  }
+
+  // Helper method to extract username from email
+  String _extractUsernameFromEmail(String email) {
+    // Split the email at '@' and take the first part
+    if (email.contains('@')) {
+      return email.split('@')[0];
+    }
+    return email; // Fallback if email format is invalid
+  }
+
+  // Save username to SharedPreferences
+  Future<void> _saveUsername(String username) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('username', username);
+  }
+
+  // Method to handle Google Sign-Up
+  Future<void> _handleGoogleSignUp() async {
+    try {
+      final user = await GoogleAuthService.signInWithGoogle();
+
+      if (user != null) {
+        // Initialize notifications when entering dashboard
+        await LocalNotificationService.initialize();
+        await LocalNotificationService.requestPermissions();
+
+        // Navigate to dashboard
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const DashboardScreen()),
+          (route) => false,
+        );
+      } else {
+        // User cancelled the sign-up process
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Google sign-up was cancelled')),
+        );
+      }
+    } catch (e) {
+      // Show error message
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Google sign-up failed: $e')));
+    }
+  }
+
+  // Helper method to validate password strength
+  String _validatePassword(String password) {
+    // Check for at least one uppercase letter
+    bool hasUppercase = password.contains(RegExp(r'[A-Z]'));
+
+    // Check for at least one digit
+    bool hasDigit = password.contains(RegExp(r'[0-9]'));
+
+    if (!hasUppercase && !hasDigit) {
+      return 'Password must contain at least one uppercase letter and one number';
+    } else if (!hasUppercase) {
+      return 'Password must contain at least one uppercase letter';
+    } else if (!hasDigit) {
+      return 'Password must contain at least one number';
+    }
+
+    return ''; // Empty string means validation passed
   }
 
   @override
@@ -166,16 +255,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              OutlinedButton(
-                onPressed: () {
-                  // Google sign up logic here
-                },
-                style: OutlinedButton.styleFrom(
+              ElevatedButton(
+                onPressed: _handleGoogleSignUp,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(
+                    0xFFF5F5F5,
+                  ), // Slightly darker than white
                   minimumSize: const Size.fromHeight(50),
-                  side: const BorderSide(color: Colors.black26),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12.0),
                   ),
+                  elevation: 3,
+                  shadowColor: Colors.black26,
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -186,7 +277,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       'Sign up with Google',
                       style: TextStyle(
                         fontSize: 16,
-                        color: Colors.black,
+                        color: Colors.black87,
                         fontFamily: "Lexend",
                         fontWeight: FontWeight.w600,
                       ),

@@ -2,15 +2,16 @@ import 'package:flutter/material.dart';
 import 'signin_signup.dart';
 
 class AuthRegisterUtils {
-  static Widget buildEmailSentStep(BuildContext context, String email) {
+  static Widget buildEmailSentStep(
+      BuildContext context, String email, String username) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         const Icon(Icons.mark_email_read, size: 80, color: Colors.green),
         const SizedBox(height: 24),
-        const Text(
-          'Verify Your Email!',
-          style: TextStyle(
+        Text(
+          'Welcome, $username!',
+          style: const TextStyle(
             fontSize: 24,
             fontFamily: 'Lexend',
             fontWeight: FontWeight.w700,
@@ -66,9 +67,13 @@ class AuthRegisterUtils {
 
 class RegistrationConfirmationScreen extends StatefulWidget {
   final String email;
+  final String username; // Add username parameter
 
-  const RegistrationConfirmationScreen({Key? key, required this.email})
-    : super(key: key);
+  const RegistrationConfirmationScreen({
+    Key? key,
+    required this.email,
+    required this.username, // Add required username
+  }) : super(key: key);
 
   @override
   State<RegistrationConfirmationScreen> createState() =>
@@ -106,10 +111,11 @@ class _RegistrationConfirmationScreenState
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
-          child:
-              _isLoading
-                  ? _buildLoadingIndicator()
-                  : AuthRegisterUtils.buildEmailSentStep(context, widget.email),
+          child: _isLoading
+              ? _buildLoadingIndicator()
+              // Pass the username to the email sent step
+              : AuthRegisterUtils.buildEmailSentStep(
+                  context, widget.email, widget.username),
         ),
       ),
     );
