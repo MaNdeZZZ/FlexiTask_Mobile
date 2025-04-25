@@ -44,13 +44,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // Try to get Google user data first
     final googleUser = await GoogleAuthService.getCurrentUser();
 
+    // Get name from SharedPreferences
+    final prefs = await SharedPreferences.getInstance();
+    final savedName = prefs.getString('username');
+
     if (googleUser != null) {
       setState(() {
-        _nameController.text = googleUser['displayName'] ?? 'Google User';
+        // If user has manually set a name, use it instead of Google display name
+        _nameController.text =
+            savedName ?? googleUser['displayName'] ?? 'Google User';
         _emailController.text = googleUser['email'] ?? '';
         _profileImageUrl = googleUser['photoURL'];
       });
     } else {
+      // If no Google data, use saved name or default
+      if (savedName != null) {
+        setState(() {
+          _nameController.text = savedName;
+        });
+      }
       // Fall back to saved profile image if no Google data
       _loadProfileImage();
     }
@@ -151,6 +163,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
 
     _showImageSelectionSuccess();
+  }
+
+  // Save the user's name to SharedPreferences
+  Future<void> _saveName(String name) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('username', name);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Name updated successfully')),
+    );
   }
 
   // Show a success message after selecting an image
@@ -282,6 +303,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   GestureDetector(
                                     onTap: () {
                                       setState(() {
+                                        // If currently editing, save the name when done
+                                        if (_isEditing) {
+                                          _saveName(_nameController.text);
+                                        }
                                         _isEditing = !_isEditing;
                                       });
                                     },

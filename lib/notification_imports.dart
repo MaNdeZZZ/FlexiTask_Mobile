@@ -6,12 +6,15 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 export 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 // Define our own enums that match the package's expected values
-enum UILocalNotificationDateInterpretation { absoluteTime, wallClockTime }
+enum UILocalNotificationDateInterpretation {
+  absoluteTime,
+  wallClockTime,
+}
 
 // Define Android schedule mode enum
 enum AndroidScheduleMode {
   exact,
   exactAllowWhileIdle,
   inexact,
-  inexactAllowWhileIdle,
+  inexactAllowWhileIdle
 }
