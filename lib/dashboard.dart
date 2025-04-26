@@ -1,3 +1,4 @@
+import 'dart:async'; // Add this import for Timer
 import 'package:flutter/material.dart';
 import 'chatbot.dart';
 import 'profile.dart';
@@ -184,6 +185,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // Add state to track if we're viewing overdue tasks
   bool _showingOverdueTasks = false;
 
+  // Add a timer for checking task status
+  Timer? _taskStatusTimer;
+
   @override
   void initState() {
     super.initState();
@@ -199,6 +203,40 @@ class _DashboardScreenState extends State<DashboardScreen> {
     // Reset selected index when returning to dashboard
     setState(() {
       _selectedIndex = 1; // Always ensure Add Task (Home) is selected
+    });
+
+    // Start timer for checking task status periodically
+    _startTaskStatusCheckTimer();
+  }
+
+  @override
+  void dispose() {
+    // Cancel timer to prevent memory leaks
+    _taskStatusTimer?.cancel();
+    super.dispose();
+  }
+
+  // Start a timer to periodically check for overdue tasks
+  void _startTaskStatusCheckTimer() {
+    // Check every 10 seconds if any task has become overdue
+    _taskStatusTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+      final now = DateTime.now();
+      bool needsUpdate = false;
+
+      // Check if any tasks have become overdue since last check
+      for (final task in _tasks) {
+        if (!task.isCompleted && task.date.isBefore(now)) {
+          needsUpdate = true;
+          break;
+        }
+      }
+
+      // Trigger UI update if needed
+      if (needsUpdate) {
+        setState(() {
+          // This empty setState will trigger a rebuild with updated overdue status
+        });
+      }
     });
   }
 
