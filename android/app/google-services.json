@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "161145697554",
+    "project_id": "flexi-task-5d512",
+    "storage_bucket": "flexi-task-5d512.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:161145697554:android:01c6094268cdd6c997afcb",
+        "android_client_info": {
+          "package_name": "com.example.flexitask_updated"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCQVsOktah68XMCffMUuQmKZXyoAJCTvfM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
